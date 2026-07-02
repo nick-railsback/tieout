@@ -1,0 +1,15 @@
+{
+  "name": "@tieout/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web app — SCAFFOLD ONLY for Batch 1. UI (the explain-itself report view) is Batch 5.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

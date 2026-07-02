@@ -1,0 +1,43 @@
+# Foundry configuration — Batch 1 scaffold.
+#
+# Reproducibility under NFR-0 demands an explicitly pinned compiler and EVM
+# target: Foundry's Config::default() ships evm_version = Osaka and
+# auto_detect_solc = true, either of which can silently drift the build across
+# machines. We pin both.
+#   solc pin  -> foundry-context @ f1bcb75 crates/config/src/lib.rs#L250-L293
+#   defaults  -> foundry-context @ f1bcb75 crates/config/src/lib.rs#L2711-L2777
+#   [fuzz]    -> foundry-context @ f1bcb75 crates/config/src/fuzz.rs#L8-L57
+# solc 0.8.35 existence verified 2026-07-02 via
+#   `gh api repos/ethereum/solidity/releases/tags/v0.8.35` (published 2026-04-29).
+
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+
+solc = "0.8.35"
+auto_detect_solc = false
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 200
+# Strip the solc metadata hash so bytecode is a pure function of source +
+# settings — a reproducible-build stance consistent with NFR-0.
+bytecode_hash = "none"
+
+# Fuzz/invariant campaigns arrive with the contracts in Batches 2-3. Scaffold
+# the config now with an explicit run count and a PINNED seed: random-per-run
+# fuzzing is at odds with NFR-0 determinism. Seed bytes are ASCII "tieout".
+[fuzz]
+runs = 256
+seed = "0x7469656f7574"
+
+[invariant]
+runs = 256
+depth = 128
+fail_on_revert = true
+
+[fmt]
+line_length = 100
+number_underscore = "thousands"

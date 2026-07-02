@@ -1,0 +1,9 @@
+# Golden determinism fixtures are byte-exact under NFR-0. Mark them `-text` so
+# git never applies EOL conversion or appends a final newline on checkout: a
+# single mutated byte would break the determinism gate (AC-1.6) and the Batch-2
+# cross-machine harness. Under NFR-0 the byte contract must be STORED intact,
+# not merely recomputed.
+packages/recon/fixtures/golden/report.json     -text
+packages/recon/fixtures/golden/manifest.json   -text
+packages/recon/fixtures/golden/ledger.json     -text
+packages/recon/fixtures/golden/reportHash.txt  -text

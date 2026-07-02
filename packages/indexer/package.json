@@ -1,0 +1,22 @@
+{
+  "name": "@tieout/indexer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ponder indexer — SCAFFOLD ONLY for Batch 1. The derivation adapter is Batch 2.",
+  "scripts": {
+    "dev": "ponder dev",
+    "start": "ponder start",
+    "build": "ponder codegen",
+    "typecheck": "ponder codegen && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "ponder": "catalog:",
+    "hono": "catalog:",
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

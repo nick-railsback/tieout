@@ -1,0 +1,61 @@
+name: CI
+
+# The golden determinism check (packages/recon determinism.test.ts) is the
+# required NFR-0 gate (AC-1.6.c): it fails loudly if the byte-identical
+# reportHash invariant is perturbed. Mark the "node" job as a required status
+# check in branch protection.
+#
+# No push or PR is opened before the terminal release batch (Batch 6); this
+# workflow is a committed file that runs once the branch reaches GitHub.
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+env:
+  PONDER_TELEMETRY_DISABLED: "1"
+
+jobs:
+  node:
+    name: node — build · typecheck · determinism gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm (pinned via packageManager)
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node 24 (pinned stack)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r run build
+
+      - name: Typecheck all packages (strict)
+        run: pnpm -r run typecheck
+
+      - name: Determinism gate + unit tests (NFR-0, AC-1.6)
+        run: pnpm -r run test
+
+  contracts:
+    name: contracts — forge build · fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry v1.7.1 (pinned stack)
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+
+      - name: Build contracts (pinned solc 0.8.35)
+        run: forge build --root packages/contracts
+
+      - name: Formatting check
+        run: forge fmt --check --root packages/contracts

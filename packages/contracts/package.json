@@ -1,0 +1,6 @@
+{
+  "name": "@tieout/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Foundry project — SCAFFOLD ONLY for Batch 1. MockStakedVault is Batch 2, AttestationRegistry is Batch 3. Built with `forge build`, not the node workspace toolchain."
+}

@@ -1,0 +1,21 @@
+# Hand-rolled pnpm workspace (no external starter template — SPEC Additional
+# Requirements). The `addresses/` table is a first-class workspace package so
+# every consumer imports chain constants from one cast-checked source (AD-5).
+packages:
+  - packages/*
+  - apps/*
+  - addresses
+
+# esbuild ships a platform binary via a postinstall script; Ponder's build
+# pipeline (Vite) needs it. Everything else in the tree runs no install scripts.
+allowBuilds:
+  esbuild: true
+
+# Centrally-pinned versions. The pinned stack is load-bearing under NFR-0:
+# two compliant builds must resolve the same toolchain.
+catalog:
+  typescript: 6.0.3
+  viem: 2.54.1
+  ponder: 0.16.6
+  hono: ^4.5.0
+  "@types/node": ^24.0.0

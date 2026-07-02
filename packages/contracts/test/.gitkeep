@@ -1,0 +1,3 @@
+# Keeps packages/contracts/test/ in git for Batch 1 (empty Foundry test tree).
+# The pinned-seed [fuzz] config in foundry.toml is staged now for the registry
+# fuzz/invariant campaigns that arrive with the contracts in Batches 2-3.

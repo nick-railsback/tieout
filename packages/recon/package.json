@@ -1,0 +1,30 @@
+{
+  "name": "@tieout/recon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure, deterministic wstETH reconciliation engine — canonicalizer + keccak binding, ledger/manifest contracts, and recon(manifest, ledger) -> (report, reportHash).",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "fixtures"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
+    "recon": "node --disable-warning=ExperimentalWarning src/bin/recon-run.ts",
+    "gen:golden": "node --disable-warning=ExperimentalWarning src/bin/recon-run.ts fixtures/golden/manifest.json fixtures/golden/ledger.json fixtures/golden/report.json"
+  },
+  "dependencies": {
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

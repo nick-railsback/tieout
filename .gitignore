@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Env / secrets (RPC keys, etc.)
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+out/
+.next/
+coverage/
+
+# Foundry
+cache/
+broadcast/
+artifacts/
+
+# Ponder
+.ponder/
+generated/
+ponder-env.d.ts
+
+# Logs / OS
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/

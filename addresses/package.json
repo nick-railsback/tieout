@@ -1,0 +1,29 @@
+{
+  "name": "@tieout/addresses",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single cast-checked address table keyed by chainId (AD-5). The sole source of chain constants for the workspace.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node --disable-warning=ExperimentalWarning dist/check.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
+    "check": "node --disable-warning=ExperimentalWarning src/check.ts"
+  },
+  "dependencies": {
+    "viem": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  }
+}

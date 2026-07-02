@@ -1,0 +1,17 @@
+{
+  "name": "tieout",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independently-verifiable reconciliation for onchain institutional positions.",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "contracts:build": "forge build --root packages/contracts"
+  }
+}
