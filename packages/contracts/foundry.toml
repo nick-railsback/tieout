@@ -41,3 +41,28 @@ fail_on_revert = true
 [fmt]
 line_length = 100
 number_underscore = "thousands"
+
+# --- Deploy ladder (Batch 3, Story 3.3) -------------------------------------
+# Anvil (local) -> Base Sepolia (84532) rehearsal -> single Base mainnet (8453)
+# canonical anchor. Every non-local rung leaves the machine and HALTS for
+# explicit approval before broadcasting.
+#
+# Secrets stay OUT of this committed file: both sections use ${VAR} env
+# interpolation, resolved lazily only when an alias is actually used (a missing
+# var is then a hard error, never a silent default). Building/testing/fuzzing
+# do not touch these sections. Both are STANDALONE top-level tables (like
+# [fuzz] above), not keys under [profile.default].
+#   [rpc_endpoints] -> foundry-context @ f1bcb75 crates/config/src/endpoints.rs#L11-L75
+#   [etherscan]     -> foundry-context @ f1bcb75 crates/config/src/etherscan.rs#L63-L98
+[rpc_endpoints]
+base = "${BASE_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+
+# `chain` MUST be Foundry's NAMED chain — `base` (8453) / `base-sepolia` (84532,
+# hyphenated) — not the numeric id and not the alias name. An Etherscan-V2
+# multichain key covers both chains with one key; if v1.7.1 instead needs a
+# per-chain Basescan endpoint, add an explicit `url = "..."` to the alias
+# (confirm live before the mainnet rung — see the story's operational gate).
+[etherscan]
+base = { chain = "base", key = "${ETHERSCAN_API_KEY}" }
+base_sepolia = { chain = "base-sepolia", key = "${ETHERSCAN_API_KEY}" }
