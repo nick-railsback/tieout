@@ -1,31 +1,43 @@
 import { createConfig } from "ponder";
 import { http } from "viem";
+import { getTokenAddress } from "@tieout/addresses";
+import { TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
 
 /**
- * Ponder indexer configuration — SCAFFOLD ONLY (Batch 1).
+ * Ponder live adapter (AD-9 Ponder side, Story 2.2). Two log sources — wstETH
+ * `Transfer` and Lido/stETH `TokenRebased` — indexed over the pinned Batch 2
+ * slice. BOTH the addresses (AD-5 table via `getTokenAddress`) AND the event
+ * definitions (`TRANSFER_EVENT`/`TOKEN_REBASED_EVENT` from `@tieout/recon`) are
+ * the SAME single source the `verify` eth_getLogs adapter uses (AC-2.2.c/AD-9),
+ * so the two fetch universes cannot diverge. The handler assembles the shared
+ * `RawLog` and feeds the SAME `derive` — Ponder is NOT on the verify path.
  *
- * A single block-interval source proves the project resolves its peer deps
- * (hono/viem/typescript) and builds under the pinned stack, with NO indexing or
- * derivation logic. The shared raw-logs → manifest derivation adapter (AD-9) is
- * Batch 2 (Story 2.2).
- *
- * Operational note for later batches: the determinism harness (Batch 2, Story
- * 2.8) MUST run `ponder start` — never `ponder dev`, which drops and recreates
- * tables and disables crash recovery.
- * [ponder@0.16.6 packages/core/src/bin/commands/dev.ts#L28-L100]
+ * Run with `ponder start` (never `ponder dev`, which drops/recreates tables),
+ * `DATABASE_SCHEMA` set, `PONDER_TELEMETRY_DISABLED=1`, and `PONDER_RPC_URL_1`.
  */
+
+// The pinned Batch 2 discrepancy slice (Story 2.8).
+const START_BLOCK = 25_444_667;
+const END_BLOCK = 25_444_922;
+
 export default createConfig({
   chains: {
-    mainnet: {
-      id: 1,
-      rpc: http(process.env.PONDER_RPC_URL_1),
-    },
+    mainnet: { id: 1, rpc: http(process.env.PONDER_RPC_URL_1) },
   },
-  blocks: {
-    ChainMeta: {
+  contracts: {
+    WstETH: {
       chain: "mainnet",
-      startBlock: 21_000_000,
-      interval: 100_000,
+      abi: [TRANSFER_EVENT],
+      address: getTokenAddress(1, "wstETH"),
+      startBlock: START_BLOCK,
+      endBlock: END_BLOCK,
+    },
+    StETH: {
+      chain: "mainnet",
+      abi: [TOKEN_REBASED_EVENT],
+      address: getTokenAddress(1, "stETH"),
+      startBlock: START_BLOCK,
+      endBlock: END_BLOCK,
     },
   },
 });

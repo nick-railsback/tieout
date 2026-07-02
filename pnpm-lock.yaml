@@ -52,6 +52,12 @@ importers:
 
   packages/indexer:
     dependencies:
+      '@tieout/addresses':
+        specifier: workspace:*
+        version: link:../../addresses
+      '@tieout/recon':
+        specifier: workspace:*
+        version: link:../recon
       hono:
         specifier: 'catalog:'
         version: 4.12.27
@@ -71,6 +77,9 @@ importers:
 
   packages/recon:
     dependencies:
+      '@tieout/addresses':
+        specifier: workspace:*
+        version: link:../../addresses
       viem:
         specifier: 'catalog:'
         version: 2.54.1(typescript@6.0.3)

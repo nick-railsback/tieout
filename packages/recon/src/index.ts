@@ -3,8 +3,10 @@
  *
  * Public surface for Batch 1: the ONE canonicalizer/keccak module (AD-11/12),
  * the ledger schema + validator + `ledgerHash` (AD-20), the manifest
- * input-contract types (AD-7), and `recon()` (AD-1/2/13). The manifest
- * *derivation* function (raw logs → manifest) is NOT here — that is Batch 2.
+ * input-contract types (AD-7), and `recon()` (AD-1/2/13). Batch 2 adds the
+ * shared derivation (AD-9): the `RawLog` input, the shared event/filter
+ * definitions, and `derive()` — consumed by both the `verify` adapter and the
+ * Ponder live adapter.
  */
 export { type CanonicalValue, canonicalize, canonicalBytes, canonicalHash } from "./canonical.ts";
 export { type Result, type Ok, type Err, ok, err } from "./result.ts";
@@ -43,3 +45,65 @@ export {
   recon,
   canonicalReport,
 } from "./recon.ts";
+// Batch 2 — the shared derivation (AD-9).
+export { type RawLog } from "./rawlog.ts";
+export {
+  TRANSFER_EVENT,
+  TOKEN_REBASED_EVENT,
+  TRANSFER_TOPIC0,
+  TOKEN_REBASED_TOPIC0,
+} from "./events.ts";
+export { type LogFilter, LOG_FILTERS, DATA_CHAIN_ID } from "./filter.ts";
+export {
+  type RebaseObservation,
+  type RateCurveError,
+  rateFromRebase,
+  buildRateCurve,
+} from "./ratecurve.ts";
+export {
+  type RateObservation,
+  type RateDivergence,
+  crossCheckRate,
+  crossCheckRates,
+} from "./crosscheck.ts";
+export {
+  type PriceRound,
+  type PriceGuardError,
+  DEFAULT_PRICE_MAX_STALENESS_SECS,
+  guardPriceRound,
+  toPriceObservation,
+} from "./priceobs.ts";
+export { type BlockChunk, chunkRange } from "./chunks.ts";
+export {
+  type PinCapture,
+  type PriceResolveError,
+  viemLogToRawLog,
+  fetchRawLogs,
+  fetchRebaseAt,
+  findSeedRebaseBlock,
+  capturePins,
+  crossCheckRateCurveArchive,
+  resolvePriceObservation,
+} from "./l0fetch.ts";
+export {
+  type ReconstructParams,
+  type ReconstructError,
+  type Reconstruction,
+  mainnetTokenTable,
+  reconstructManifest,
+} from "./reconstruct.ts";
+export {
+  type DerivationInput,
+  type DerivationError,
+  derive,
+} from "./derivation.ts";
+export {
+  type ReportBinding,
+  type SignatureEnvelope,
+  type SignatureCheck,
+  TIEOUT_DOMAIN_NAME,
+  TIEOUT_DOMAIN_VERSION,
+  SECP256K1_HALF_N,
+  signReport,
+  verifyReportSignature,
+} from "./signature.ts";

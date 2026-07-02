@@ -1,0 +1,6 @@
+MockStakedVaultTest:testFuzz_ad6_eventRate_equals_convertToAssetsRead(uint256,uint256) (runs: 256, μ: 82054, ~: 81664)
+MockStakedVaultTest:testFuzz_convertToAssets_equalsBareFloor(uint256,uint256,uint256,uint256) (runs: 256, μ: 87189, ~: 87112)
+MockStakedVaultTest:test_accrueRewards_emitsExplicitRateEvent() (gas: 82593)
+MockStakedVaultTest:test_convertToAssets_bareFloor_afterDepositAndReward() (gas: 81128)
+MockStakedVaultTest:test_convertToAssets_smallValues_noVirtualOffset() (gas: 79220)
+MockStakedVaultTest:test_convertToAssets_zeroSupply_returnsZeroNeverReverts() (gas: 8659)

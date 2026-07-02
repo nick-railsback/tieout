@@ -1,9 +1,12 @@
 name: CI
 
-# The golden determinism check (packages/recon determinism.test.ts) is the
-# required NFR-0 gate (AC-1.6.c): it fails loudly if the byte-identical
-# reportHash invariant is perturbed. Mark the "node" job as a required status
-# check in branch protection.
+# NFR-0 is gated at two levels:
+#  - the "node" job runs packages/recon determinism.test.ts (single-machine,
+#    in-proc + fresh-process; AC-1.6.c);
+#  - the "determinism" job (Story 2.8) proves it ACROSS two independent runners
+#    from public chain data via `tieout verify` (the acceptance gate).
+# Mark both "node" and "determinism" as required status checks in branch
+# protection.
 #
 # No push or PR is opened before the terminal release batch (Batch 6); this
 # workflow is a committed file that runs once the branch reaches GitHub.
@@ -44,10 +47,19 @@ jobs:
         run: pnpm -r run test
 
   contracts:
-    name: contracts — forge build · fmt
+    name: contracts — forge build · test · fmt · snapshot
     runs-on: ubuntu-latest
+    # Run all forge steps from the package dir so `.gas-snapshot` (which forge
+    # writes/reads at cwd, NOT the --root project) resolves to the committed
+    # packages/contracts/.gas-snapshot.
+    defaults:
+      run:
+        working-directory: packages/contracts
     steps:
       - uses: actions/checkout@v4
+        with:
+          # forge-std is a git submodule under packages/contracts/lib.
+          submodules: recursive
 
       - name: Install Foundry v1.7.1 (pinned stack)
         uses: foundry-rs/foundry-toolchain@v1
@@ -55,7 +67,61 @@ jobs:
           version: v1.7.1
 
       - name: Build contracts (pinned solc 0.8.35)
-        run: forge build --root packages/contracts
+        run: forge build
 
       - name: Formatting check
-        run: forge fmt --check --root packages/contracts
+        run: forge fmt --check
+
+      - name: Test (fuzz under the pinned [fuzz] seed — NFR-0)
+        run: forge test
+
+      - name: Gas snapshot drift check
+        run: forge snapshot --check
+
+  # NFR-0 ACCEPTANCE GATE (Story 2.8): two independent runners each re-derive the
+  # discrepancy slice from public chain data via an L0 eth_getLogs re-fetch and
+  # must reproduce the committed golden reportHash byte-for-byte. `tieout verify`
+  # exits non-zero on ANY byte/hash divergence (or if the AD-6 archive
+  # cross-check fails), so a determinism break fails the job RED. The slice
+  # drives a REAL injected discrepancy (bookedReward vs chain-derived) AND the
+  # AD-6 cross-check at rebase blocks 25437638 + 25444795 — never a happy-path
+  # toy. This is verify-based (L0), so no Ponder runner is involved.
+  #
+  # Requires the repo secret ETH_RPC_URL (a mainnet ARCHIVE endpoint). Set
+  # ETH_RPC_URL_2 to run runner-b against a DIFFERENT provider for a stronger
+  # cross-provider proof; it falls back to ETH_RPC_URL when unset.
+  determinism:
+    name: NFR-0 cross-machine determinism (reportHash · 2 runners)
+    needs: node
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [runner-a, runner-b]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm (pinned via packageManager)
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node 24 (pinned stack)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build @tieout/addresses (verify reads the AD-5 feed from dist)
+        run: pnpm --filter @tieout/addresses build
+
+      - name: tieout verify — re-derive from public data, reproduce the golden
+        env:
+          ETH_RPC_URL: >-
+            ${{ (matrix.runner == 'runner-b' && secrets.ETH_RPC_URL_2 != '')
+                && secrets.ETH_RPC_URL_2 || secrets.ETH_RPC_URL }}
+        run: >-
+          node --disable-warning=ExperimentalWarning
+          packages/recon/src/bin/verify.ts
+          packages/recon/fixtures/slice/report.json
+          packages/recon/fixtures/slice/ledger.json

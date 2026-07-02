@@ -23,6 +23,9 @@ export function checkAddressTable(): AddressCheckError[] {
   const errors: AddressCheckError[] = [];
 
   for (const entry of ADDRESS_TABLE) {
+    if (entry.kind !== "token" && entry.kind !== "priceFeed") {
+      errors.push({ entry, reason: `invalid kind ${String(entry.kind)} (expected token|priceFeed)` });
+    }
     if (!isAddress(entry.address, { strict: false })) {
       errors.push({ entry, reason: "not a well-formed address" });
       continue;
