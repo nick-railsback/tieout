@@ -120,9 +120,11 @@ test("AC-5.1.b — narration is non-canonical: reportHash is unchanged and the r
   const { report, reportHash } = reconOf("golden");
   const committed = fixtureText("golden", "reportHash.txt").trim();
 
-  // With narrate.ts present, the golden hash is still Batch 4's value (no hash moved).
+  // Narration is presentational, so it never moves the hash: whatever the
+  // committed golden reportHash is (0.2.0 fingerprint, post-remediation), it is
+  // reproduced exactly here and below.
   assert.equal(reportHash, committed);
-  assert.equal(reportHash, "0x3d286ca68e70ecb97b1cf13615688f3e58c579766e357fdcb1c305da8b583066");
+  assert.equal(reportHash, "0x1b20c27f07ff8495a9b33a6dab4d8b757ff2cf90bc9881bcd3eb1a927d20be1f");
 
   // Narrating reads but never mutates: the canonical hash is identical afterward.
   const before = canonicalHash(canonicalReport(report));

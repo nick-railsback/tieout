@@ -98,11 +98,13 @@ test("AC-4.2.a/b — currentValueUsd is a pure function of the pinned round (no 
 
 test("AC-4.2.b — the USD addition grows the report, not the manifest: manifestHash unchanged", () => {
   const manifest = goldenManifest();
-  // Exactly the Batch-1 committed value: no USD/valuation field enters the
-  // manifest (schema stability) — the figures live in the report.
+  // The current committed manifestHash (0.2.0 fingerprint). It moved vs Batch 1
+  // ONLY because engineVersion (a manifest field) bumped — NOT because any
+  // USD/valuation field entered the manifest; the includes-checks below prove
+  // the figures still live in the report, not the manifest.
   assert.equal(
     manifestHash(manifest),
-    "0xa9fa6392e21d2e0435d470d62fdff8a096514039acca4471e37a9f991cfb03cb",
+    "0x9be3885fb36f81eed42adcc14a72b8d913dcdf7017977faea5cc391703d87cab",
   );
   const manifestJson = canonicalize(canonicalManifest(manifest));
   assert.ok(!manifestJson.includes("valuation"), "manifest must carry no valuation field");

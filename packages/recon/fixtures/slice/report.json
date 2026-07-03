@@ -25,7 +25,7 @@
             "delta": "1000000000"
         }
     ],
-    "engineVersion": "0.1.0",
+    "engineVersion": "0.2.0",
     "ledgerHash": "0x004fe273be57ee2fb129337a1236f5432ca1ca2cd9edb408dd576f47f9ea0867",
     "lots": [
         {
@@ -35,7 +35,7 @@
             "shares": "806729532540154"
         }
     ],
-    "manifestHash": "0xc54b8eb0d6a207a193c331aa37fa9b03e1150f8199a7e49f5c12e723290fb425",
+    "manifestHash": "0x7bed3f9a074d5395d74f8feb0cc8a2f8de9681bda04f631785144f8c31ad958c",
     "pins": {
         "endBlock": "25444922",
         "endHash": "0x8a4c7ad09d2d8efbf4ddfe2b744b6c5a1596305a87935994b245a0db1908cb15",

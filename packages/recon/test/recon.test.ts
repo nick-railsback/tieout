@@ -25,7 +25,7 @@ test("accepts the golden manifest; manifestHash matches the committed value", ()
   const manifest = goldenManifest();
   assert.equal(
     manifestHash(manifest),
-    "0xa9fa6392e21d2e0435d470d62fdff8a096514039acca4471e37a9f991cfb03cb",
+    "0x9be3885fb36f81eed42adcc14a72b8d913dcdf7017977faea5cc391703d87cab",
   );
 });
 
@@ -89,7 +89,7 @@ test("reconciles both axes: shares tie out, reward breaks by the injected delta"
   );
 
   // Report embeds hashes, engineVersion, and the pinned endpoints (AC-1.5.c).
-  assert.equal(report.engineVersion, "0.1.0");
+  assert.equal(report.engineVersion, "0.2.0");
   assert.equal(report.pins.startBlock, 21_000_000n);
   assert.equal(report.pins.endBlock, 21_100_000n);
   assert.match(report.manifestHash, /^0x[0-9a-f]{64}$/);

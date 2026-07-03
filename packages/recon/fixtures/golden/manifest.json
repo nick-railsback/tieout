@@ -64,7 +64,7 @@
     { "chainId": "1", "symbol": "wstETH", "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0" },
     { "chainId": "1", "symbol": "stETH", "address": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84" }
   ],
-  "engineVersion": "0.1.0",
+  "engineVersion": "0.2.0",
   "priceObservation": {
     "feedAddress": "0xcfe54b5cd566ab89272946f602d76ea879cab4a8",
     "roundId": "18446744073709551716",
