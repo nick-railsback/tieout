@@ -45,6 +45,11 @@ test("AC-5.2.a — the slice report view names the breaking event and narrates t
   // The everyday always-green axis (closing shares) ties out; reward breaks.
   assert.equal(view.axes.find((a) => a.axis === "closingShares")?.tieOut, true);
   assert.equal(view.axes.find((a) => a.axis === "reward")?.tieOut, false);
+
+  // a11y: each axis carries a screen-reader label for its ✓/✗ glyph so it is
+  // not read as "check"/"multiplication x".
+  assert.equal(view.axes.find((a) => a.axis === "closingShares")?.tieOutLabel, "ties out");
+  assert.equal(view.axes.find((a) => a.axis === "reward")?.tieOutLabel, "does not tie out");
 });
 
 test("AC-5.2.b — a reconciled report renders the always-green state", () => {

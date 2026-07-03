@@ -71,7 +71,7 @@
         <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
       </header>
 
-      <p class="banner" id="honesty-banner"></p>
+      <p class="banner" id="honesty-banner" aria-live="polite"></p>
 
       <div class="toggle" role="group" aria-label="Which report to view">
         <button type="button" data-report="golden" aria-pressed="true"></button>
@@ -80,7 +80,7 @@
       <p class="note" id="report-note" style="margin: -8px 0 20px"></p>
 
       <section id="live" aria-labelledby="live-h">
-        <h2 id="live-h">Live position · Ethereum mainnet <span class="badge neutral" id="live-status">connecting…</span></h2>
+        <h2 id="live-h">Live position · Ethereum mainnet <span class="badge neutral" id="live-status" aria-live="polite">connecting…</span></h2>
         <div class="row"><span class="k">Subject</span><span class="mono" id="live-subject">—</span></div>
         <div class="row"><span class="k">wstETH balance</span><span class="mono" id="live-wsteth">—</span></div>
         <div class="row"><span class="k">stETH per wstETH</span><span class="mono" id="live-rate">—</span></div>
@@ -89,7 +89,7 @@
       </section>
 
       <section id="report" aria-labelledby="report-h">
-        <h2 id="report-h">Reconciliation · explain-itself <span class="badge neutral" id="report-status">—</span></h2>
+        <h2 id="report-h">Reconciliation · explain-itself <span class="badge neutral" id="report-status" aria-live="polite">—</span></h2>
         <p class="headline" id="report-headline">—</p>
         <ul class="narration" id="report-narration"></ul>
         <table>
@@ -104,7 +104,7 @@
       </section>
 
       <section id="anchor" aria-labelledby="anchor-h">
-        <h2 id="anchor-h">Tamper-evidence anchor · Base <span class="badge neutral" id="anchor-status">—</span></h2>
+        <h2 id="anchor-h">Tamper-evidence anchor · Base <span class="badge neutral" id="anchor-status" aria-live="polite">—</span></h2>
         <div class="row"><span class="k">Chain</span><span class="mono" id="anchor-chain">—</span></div>
         <p id="anchor-detail" class="headline">—</p>
         <p class="note" id="anchor-note"></p>

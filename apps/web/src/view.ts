@@ -65,7 +65,15 @@ export type AxisRow = {
   readonly ledger: string;
   readonly delta: string;
   readonly tieOut: boolean;
+  /** Screen-reader label for the ✓/✗ glyph cell — a bare "✗" reads as
+   * "multiplication x", so the cell carries this accessible name instead. */
+  readonly tieOutLabel: string;
 };
+
+/** The accessible name for a tie-out glyph (pairs the color/glyph with words). */
+export function tieOutLabel(tieOut: boolean): string {
+  return tieOut ? "ties out" : "does not tie out";
+}
 
 /** The full report view model — everything the report + diff panels render. */
 export type ReportViewModel = {
@@ -99,6 +107,7 @@ export function reportViewModel(report: Report): ReportViewModel {
       ledger: formatUnits(closingShares.ledger, WEI_DECIMALS),
       delta: signedWei(closingShares.delta),
       tieOut: closingShares.tieOut,
+      tieOutLabel: tieOutLabel(closingShares.tieOut),
     },
     {
       axis: "reward",
@@ -108,6 +117,7 @@ export function reportViewModel(report: Report): ReportViewModel {
       ledger: formatUnits(reward.ledger, WEI_DECIMALS),
       delta: signedWei(reward.delta),
       tieOut: reward.tieOut,
+      tieOutLabel: tieOutLabel(reward.tieOut),
     },
   ];
 

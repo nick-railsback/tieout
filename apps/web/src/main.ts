@@ -118,6 +118,8 @@ function paintReport(reportJson: unknown, reportHash: string): `0x${string}` {
       const tie = document.createElement("td");
       tie.textContent = axis.tieOut ? "✓" : "✗";
       tie.className = axis.tieOut ? "tie-ok" : "tie-no";
+      // A bare ✓/✗ reads as "check"/"multiplication x" — name the cell instead.
+      tie.setAttribute("aria-label", axis.tieOutLabel);
       tr.append(tie);
       return tr;
     }),
