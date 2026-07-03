@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
 import { type Result, ok } from "./result.ts";
 import { LEDGER_SCHEMA_VERSION } from "./version.ts";
 import {
@@ -42,16 +42,6 @@ export type Lot = {
 
 /** The reconciled-token identifier is a fixed constant set for the MVP. */
 export const ALLOWED_ASSETS: readonly string[] = ["wstETH"];
-
-/** Compare two strings by UTF-16 code unit (matches the canonical key order). */
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
 
 /**
  * Validate an untrusted, JSON-parsed ledger into a typed {@link Ledger}. This

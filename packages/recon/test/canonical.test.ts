@@ -1,9 +1,46 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { keccak256, toBytes } from "viem";
-import { canonicalBytes, canonicalHash, canonicalize } from "../src/canonical.ts";
+import {
+  canonicalBytes,
+  canonicalHash,
+  canonicalize,
+  compareCodeUnits,
+} from "../src/canonical.ts";
 
 // T3 / AC-1.3 — the single canonicalizer + keccak binding module.
+
+// Health-audit DRY finding: compareCodeUnits is the one ordering primitive under
+// both the RFC-8785 key sort (here) and the declared array-order validators in
+// manifest/ledger/recon. It is single-sourced from this module; this test pins
+// its exact contract for every importer, including the surrogate-pair case that
+// a "fix" to localeCompare or codePointAt would silently break.
+test("compareCodeUnits orders by UTF-16 code unit, with a length tiebreak", () => {
+  assert.ok(compareCodeUnits("a", "b") < 0);
+  assert.ok(compareCodeUnits("b", "a") > 0);
+  assert.equal(compareCodeUnits("abc", "abc"), 0);
+  // Common prefix → shorter string sorts first.
+  assert.ok(compareCodeUnits("ab", "abc") < 0);
+  assert.ok(compareCodeUnits("abc", "ab") > 0);
+
+  // Surrogate-pair discriminator: U+1F600 (😀) is the pair D83D DE00, so its
+  // FIRST code unit (0xD83D) is below U+FFFF. Code-unit order therefore puts
+  // 😀 BEFORE U+FFFF, even though its code point (0x1F600) is far above it.
+  // A switch to codePointAt/localeCompare would flip this — the exact
+  // determinism break the single-sourcing prevents.
+  assert.ok(compareCodeUnits("\u{1f600}", "￿") < 0);
+  assert.ok(compareCodeUnits("￿", "\u{1f600}") > 0);
+  // It matches JS's native `<` on strings (the property this module documents).
+  assert.equal(Math.sign(compareCodeUnits("\u{1f600}", "￿")), "\u{1f600}" < "￿" ? -1 : 1);
+
+  // And it is exactly the order the canonicalizer emits for object keys: 😀
+  // sorts before ￿, and JSON.stringify leaves both literal (only lone
+  // surrogates are escaped), so the emitted keys are the raw characters.
+  assert.equal(
+    canonicalize({ "￿": 1n, "\u{1f600}": 2n }),
+    '{"\u{1f600}":"2","￿":"1"}',
+  );
+});
 
 test("JCS sorts object keys by UTF-16 code unit; arrays keep their order", () => {
   assert.equal(canonicalize({ b: 2n, a: 1n, c: 3n }), '{"a":"1","b":"2","c":"3"}');

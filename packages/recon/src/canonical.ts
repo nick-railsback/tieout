@@ -37,8 +37,13 @@ export type CanonicalValue =
  * Compare two strings by UTF-16 code unit — exactly the RFC-8785 property-name
  * ordering. (JavaScript's default `<` on strings already compares by code
  * unit; this is the explicit, self-documenting form.)
+ *
+ * This is the single source of the ordering primitive: this module owns the JCS
+ * byte contract, and the declared array-order validators (manifest/ledger/recon)
+ * import it from here so canonical key-sort and array-order validation can never
+ * drift apart. Do not re-implement it elsewhere.
  */
-function compareCodeUnits(a: string, b: string): number {
+export function compareCodeUnits(a: string, b: string): number {
   const len = Math.min(a.length, b.length);
   for (let i = 0; i < len; i++) {
     const delta = a.charCodeAt(i) - b.charCodeAt(i);

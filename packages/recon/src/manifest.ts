@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
 import { type Result, ok } from "./result.ts";
 import {
   type FieldError,
@@ -89,15 +89,6 @@ export type PriceObservation = {
 };
 
 const EVENT_TYPES: readonly string[] = ["Transfer", "TokenRebased"];
-
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
 
 function validateEvent(raw: unknown, path: string): Result<ManifestEvent, FieldError> {
   if (!isPlainObject(raw)) return fail("bad-type", `${path}: expected an object`, path);

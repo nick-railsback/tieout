@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
 import { type Ledger, ledgerHash } from "./ledger.ts";
 import {
   type Manifest,
@@ -135,15 +135,6 @@ export type ReconError = {
   readonly code: string;
   readonly message: string;
 };
-
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
 
 /** The rate in effect at `block`: the most recent rebase point at or before it
  * (AD-6). `null` if the curve does not seed at/before `block`. */
