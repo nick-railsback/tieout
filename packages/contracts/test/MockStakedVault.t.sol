@@ -46,6 +46,34 @@ contract MockStakedVaultTest is Test {
         assertEq(vault.convertToAssets(1), 2);
     }
 
+    // convertToShares — first deposit (no shares yet) mints 1:1.
+    function test_convertToShares_firstDepositMints1to1() public view {
+        assertEq(vault.totalSupply(), 0);
+        assertEq(vault.convertToShares(7e18), 7e18);
+    }
+
+    // convertToShares — proportional at the current rate once shares exist.
+    function test_convertToShares_proportionalAfterReward() public {
+        vault.deposit(100e18, HOLDER); // totalAssets=100e18, totalSupply=100e18
+        vault.accrueRewards(50e18); // totalAssets=150e18
+        // 30e18 * 100e18 / 150e18 = 20e18
+        assertEq(vault.convertToShares(30e18), 20e18);
+    }
+
+    // convertToShares — the defensive totalAssets == 0 (with shares outstanding)
+    // branch returns 0 rather than dividing by zero. This state is UNREACHABLE
+    // through the public API (there is no burn/withdraw, and deposit couples the
+    // two totals), so it is forced via vm.store to cover the guard directly —
+    // symmetric with convertToAssets's totalSupply == 0 guard. totalAssets is
+    // storage slot 0 (asset is immutable, so it occupies no slot).
+    function test_convertToShares_zeroAssetsWithSupply_returnsZero() public {
+        vault.deposit(100e18, HOLDER); // totalSupply=100e18, totalAssets=100e18
+        vm.store(address(vault), bytes32(uint256(0)), bytes32(uint256(0))); // totalAssets := 0
+        assertEq(vault.totalAssets(), 0); // confirms the poked slot
+        assertEq(vault.totalSupply(), 100e18); // shares untouched
+        assertEq(vault.convertToShares(50e18), 0); // guard fires, no div-by-zero
+    }
+
     // AC-2.1.a — the reward helper emits an explicit rate-accrual event.
     function test_accrueRewards_emitsExplicitRateEvent() public {
         vault.deposit(100e18, HOLDER);
