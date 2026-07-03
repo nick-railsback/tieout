@@ -6,7 +6,10 @@
 
 /** Mainnet WebSocket RPC for live wstETH positions. A real `eth_subscribe`
  * transport (not polling); overridable via `VITE_WSS_URL`. */
-export const WSS_URL = import.meta.env.VITE_WSS_URL ?? "wss://ethereum-rpc.publicnode.com";
+// `import.meta.env?.` (not `.`) so the module is importable outside Vite too —
+// e.g. under node:test, where `import.meta.env` is undefined. Vite still injects
+// the env at build time; the optional chain is a no-op when it is present.
+export const WSS_URL = import.meta.env?.VITE_WSS_URL ?? "wss://ethereum-rpc.publicnode.com";
 
 /**
  * viem's `webSocket` reconnect budget defaults to `attempts: 5, delay: 2000`
@@ -17,6 +20,17 @@ export const WSS_URL = import.meta.env.VITE_WSS_URL ?? "wss://ethereum-rpc.publi
  */
 export const WS_RECONNECT_ATTEMPTS = 20;
 export const WS_RECONNECT_DELAY_MS = 2_000;
+
+/**
+ * Consecutive live-read (`multicall`) failures tolerated before the panel goes
+ * terminal. A healthy socket delivering `newHeads` while every `eth_call` fails
+ * (plausible on the default public node, which rate-limits reads harder than
+ * subscriptions) must NOT pin "connecting…" forever with errors only in the
+ * console (AC-5.2.c) — after this many consecutive read failures the surface
+ * escalates to "disconnected", mirroring the socket path. Smaller than the
+ * socket budget: a read that keeps failing is a faster, louder signal.
+ */
+export const LIVE_READ_FAILURE_LIMIT = 3;
 
 /** Chain the AttestationRegistry anchor is read on. Default Base mainnet (8453);
  * its registry is not deployed yet, so the anchor panel degrades gracefully to
@@ -29,10 +43,10 @@ function resolveAnchorChainId(raw: string | undefined): number {
   const parsed = Number(raw);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : ANCHOR_CHAIN_ID_DEFAULT;
 }
-export const ANCHOR_CHAIN_ID = resolveAnchorChainId(import.meta.env.VITE_ANCHOR_CHAIN_ID);
+export const ANCHOR_CHAIN_ID = resolveAnchorChainId(import.meta.env?.VITE_ANCHOR_CHAIN_ID);
 
 /** Optional RPC override for the anchor chain (else viem's chain default). */
-export const ANCHOR_RPC_URL = import.meta.env.VITE_ANCHOR_RPC_URL;
+export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
 
 /** The two committed reports the surface renders (real engine output). BOTH
  * carry the injected reward discrepancy by design (the explain-itself demo), so
