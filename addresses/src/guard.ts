@@ -1,5 +1,5 @@
 import { getAddress, isAddress } from "viem";
-import { ADDRESS_TABLE, type AddressEntry } from "./index.ts";
+import { ADDRESS_TABLE, ADDRESS_KINDS, type AddressEntry } from "./index.ts";
 
 /**
  * The AD-5 build-time address guard. Each stored lowercase address must
@@ -23,8 +23,11 @@ export function checkAddressTable(): AddressCheckError[] {
   const errors: AddressCheckError[] = [];
 
   for (const entry of ADDRESS_TABLE) {
-    if (entry.kind !== "token" && entry.kind !== "priceFeed") {
-      errors.push({ entry, reason: `invalid kind ${String(entry.kind)} (expected token|priceFeed)` });
+    if (!(ADDRESS_KINDS as readonly string[]).includes(entry.kind)) {
+      errors.push({
+        entry,
+        reason: `invalid kind ${String(entry.kind)} (expected ${ADDRESS_KINDS.join("|")})`,
+      });
     }
     if (!isAddress(entry.address, { strict: false })) {
       errors.push({ entry, reason: "not a well-formed address" });

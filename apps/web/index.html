@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tieout — independently-verifiable reconciliation</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1216;
+        --panel: #171b21;
+        --line: #262c35;
+        --fg: #e6e9ee;
+        --muted: #9aa4b2;
+        --ok: #3fb950;
+        --warn: #d29922;
+        --accent: #58a6ff;
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+      header h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
+      header p { margin: 0; color: var(--muted); }
+      .banner {
+        margin: 20px 0 24px; padding: 12px 14px; border-radius: 8px;
+        border: 1px solid var(--line); background: rgba(88, 166, 255, 0.06);
+        color: var(--fg); font-size: 13.5px;
+      }
+      .toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+      .toggle button {
+        font: inherit; color: var(--fg); cursor: pointer;
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 999px; padding: 6px 14px;
+      }
+      .toggle button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+      section {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        padding: 18px; margin-bottom: 16px;
+      }
+      section h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+      .row { display: flex; justify-content: space-between; gap: 16px; padding: 4px 0; }
+      .row .k { color: var(--muted); }
+      .mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+      .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); }
+      .badge.ok { color: var(--ok); border-color: rgba(63, 185, 80, 0.4); }
+      .badge.warn { color: var(--warn); border-color: rgba(210, 153, 34, 0.4); }
+      .badge.neutral { color: var(--muted); }
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13.5px; }
+      th, td { text-align: right; padding: 7px 8px; border-top: 1px solid var(--line); }
+      th:first-child, td:first-child { text-align: left; }
+      thead th { color: var(--muted); font-weight: 500; border-top: none; }
+      td.mono { font-family: var(--mono); }
+      .tie-ok { color: var(--ok); }
+      .tie-no { color: var(--warn); }
+      ul.narration { margin: 8px 0 0; padding-left: 18px; }
+      ul.narration li { margin: 4px 0; }
+      .note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+      .headline { font-size: 15px; margin: 2px 0 10px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>tieout</h1>
+        <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
+      </header>
+
+      <p class="banner" id="honesty-banner"></p>
+
+      <div class="toggle" role="group" aria-label="Which report to view">
+        <button type="button" data-report="golden" aria-pressed="true"></button>
+        <button type="button" data-report="slice" aria-pressed="false"></button>
+      </div>
+      <p class="note" id="report-note" style="margin: -8px 0 20px"></p>
+
+      <section id="live" aria-labelledby="live-h">
+        <h2 id="live-h">Live position · Ethereum mainnet <span class="badge neutral" id="live-status">connecting…</span></h2>
+        <div class="row"><span class="k">Subject</span><span class="mono" id="live-subject">—</span></div>
+        <div class="row"><span class="k">wstETH balance</span><span class="mono" id="live-wsteth">—</span></div>
+        <div class="row"><span class="k">stETH per wstETH</span><span class="mono" id="live-rate">—</span></div>
+        <div class="row"><span class="k">stETH value</span><span class="mono" id="live-steth">—</span></div>
+        <p class="note">Read live from mainnet via Multicall3 + a WebSocket subscription — every value is a real chain read.</p>
+      </section>
+
+      <section id="report" aria-labelledby="report-h">
+        <h2 id="report-h">Reconciliation · explain-itself <span class="badge neutral" id="report-status">—</span></h2>
+        <p class="headline" id="report-headline">—</p>
+        <ul class="narration" id="report-narration"></ul>
+        <table>
+          <thead><tr><th>Axis</th><th>Onchain</th><th>Book</th><th>Δ</th><th>Ties out</th></tr></thead>
+          <tbody id="report-axes"></tbody>
+        </table>
+        <div class="row" style="margin-top:12px"><span class="k">Current value</span><span class="mono" id="report-current">—</span></div>
+        <div class="row"><span class="k">Cost basis</span><span class="mono" id="report-cost">—</span></div>
+        <div class="row"><span class="k">Unrealized P/L</span><span class="mono" id="report-pnl">—</span></div>
+        <div class="row"><span class="k">Window</span><span class="mono" id="report-window">—</span></div>
+        <div class="row"><span class="k">Report hash</span><span class="mono" id="report-hash">—</span></div>
+      </section>
+
+      <section id="anchor" aria-labelledby="anchor-h">
+        <h2 id="anchor-h">Tamper-evidence anchor · Base <span class="badge neutral" id="anchor-status">—</span></h2>
+        <div class="row"><span class="k">Chain</span><span class="mono" id="anchor-chain">—</span></div>
+        <p id="anchor-detail" class="headline">—</p>
+        <p class="note" id="anchor-note"></p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

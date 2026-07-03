@@ -108,3 +108,13 @@ export {
   signReport,
   verifyReportSignature,
 } from "./signature.ts";
+// Batch 5 — Story 5.1: the pure, non-canonical explain-itself narration (AD-17)
+// plus the report.json hydrator the web renders through. Presentational only:
+// reads a Report, never enters the hashed bytes.
+export {
+  type ReportNarration,
+  type DiscrepancyNarration,
+  narrateReport,
+  narrateDiscrepancy,
+  parseReportJson,
+} from "./narrate.ts";

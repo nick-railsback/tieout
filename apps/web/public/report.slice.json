@@ -1,0 +1,58 @@
+{
+    "asset": "wstETH",
+    "axes": {
+        "closingShares": {
+            "delta": "0",
+            "ledger": "806729532540154",
+            "onchain": "806729532540154",
+            "tieOut": true
+        },
+        "reward": {
+            "delta": "1000000000",
+            "ledger": "62578109359",
+            "onchain": "63578109359",
+            "tieOut": false
+        }
+    },
+    "discrepancies": [
+        {
+            "axis": "reward",
+            "breakingEvent": {
+                "blockNumber": "25444795",
+                "logIndex": "29",
+                "txHash": "0x5632e96c6acca45e7f081fb09e3d8fb1ee25ef8da58129503fbd1446cec04c98"
+            },
+            "delta": "1000000000"
+        }
+    ],
+    "engineVersion": "0.1.0",
+    "ledgerHash": "0x004fe273be57ee2fb129337a1236f5432ca1ca2cd9edb408dd576f47f9ea0867",
+    "lots": [
+        {
+            "acquisitionBlock": "25444755",
+            "costBasisUsd": "0",
+            "lotId": "lot-1",
+            "shares": "806729532540154"
+        }
+    ],
+    "manifestHash": "0xc54b8eb0d6a207a193c331aa37fa9b03e1150f8199a7e49f5c12e723290fb425",
+    "pins": {
+        "endBlock": "25444922",
+        "endHash": "0x8a4c7ad09d2d8efbf4ddfe2b744b6c5a1596305a87935994b245a0db1908cb15",
+        "startBlock": "25444667",
+        "startHash": "0x4d75462a532e6447c9548162c28697f63f31e9f22649dbe36b5f7c63ed484431"
+    },
+    "schemaVersion": "2",
+    "subject": "0xd0558b2f0f0a00cbc6176c15fec82ebb8e7bb696",
+    "valuation": {
+        "answer": "166119580394",
+        "costBasisUsd": "0",
+        "currentValueUsd": "1659689",
+        "priceDecimals": "8",
+        "rate1e18": "1238448566083594004",
+        "roundId": "36893488147419123409",
+        "sharesValued": "806729532540154",
+        "unrealizedPnl": "1659689",
+        "usdDecimals": "6"
+    }
+}

@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getAddress, isAddress } from "viem";
-import { ADDRESS_TABLE, getTokenAddress, getFeedAddress, type TokenSymbol } from "../src/index.ts";
+import {
+  ADDRESS_TABLE,
+  ADDRESS_KINDS,
+  getTokenAddress,
+  getFeedAddress,
+  getUtilityAddress,
+  getRegistryAddress,
+  findRegistryAddress,
+  type TokenSymbol,
+} from "../src/index.ts";
 import { checkAddressTable } from "../src/guard.ts";
 
 // T2 / AC-1.1.b, AC-1.1.c — cast-checked address table + build guard.
@@ -43,10 +52,10 @@ test("getTokenAddress resolves known tokens and throws for the unknown", () => {
 // is representable without lying about its kind. wstETH + stETH stay tokens;
 // the Chainlink stETH/USD feed joins as a priceFeed.
 
-test("every entry carries a valid kind discriminator (token | priceFeed)", () => {
+test("every entry carries a valid kind discriminator (token | priceFeed | utility | registry)", () => {
   for (const entry of ADDRESS_TABLE) {
     assert.ok(
-      entry.kind === "token" || entry.kind === "priceFeed",
+      (ADDRESS_KINDS as readonly string[]).includes(entry.kind),
       `entry ${entry.symbol}@${entry.chainId} has invalid kind ${String(entry.kind)}`,
     );
   }
@@ -73,6 +82,54 @@ test("token and feed lookups are kind-scoped (a feed is not a token)", () => {
   // getTokenAddress only resolves kind==="token"; asking it for the feed symbol
   // must not accidentally return the feed address.
   assert.throws(() => getTokenAddress(1, "stETH/USD" as unknown as TokenSymbol));
+});
+
+// T2 / AC-5.2.a — the AD-5 table grows for the web shell: Multicall3 (utility)
+// and the AttestationRegistry anchor (registry). No address is inlined in apps/web.
+
+test("Multicall3 is present as a utility entry on mainnet, lowercase-stored (AC-5.2.a, AD-5)", () => {
+  const mc = ADDRESS_TABLE.find((e) => e.chainId === 1 && e.symbol === "Multicall3");
+  assert.ok(mc, "Multicall3 missing from the AD-5 table");
+  assert.equal(mc.kind, "utility");
+  // cast to-check-sum-address 0xca11…ca11 → 0xcA11bde05977b3631167028862bE2a173976CA11;
+  // stored form is its lowercase (AD-5).
+  assert.equal(mc.address, "0xca11bde05977b3631167028862be2a173976ca11");
+});
+
+test("getUtilityAddress resolves Multicall3 by kind and throws for the unknown (AC-5.2.a)", () => {
+  assert.equal(getUtilityAddress(1, "Multicall3"), "0xca11bde05977b3631167028862be2a173976ca11");
+  assert.throws(() => getUtilityAddress(999, "Multicall3"), /no utility for Multicall3 on chainId 999/);
+});
+
+test("the AttestationRegistry entry is table-driven, never inlined (AC-5.2.a, AD-5)", () => {
+  const reg = ADDRESS_TABLE.find((e) => e.kind === "registry" && e.symbol === "AttestationRegistry");
+  assert.ok(reg, "AttestationRegistry missing from the AD-5 table");
+  // Only a REAL deploy is recorded. Batch 3's maintainer-gated ladder has run
+  // only on local Anvil (31337) so far; Base (8453) is intentionally ABSENT
+  // until its rung runs — the web must degrade gracefully, never show a fake
+  // mainnet record (AD-14).
+  assert.equal(reg.chainId, 31337);
+  assert.equal(reg.address, "0x5fbdb2315678afecb367f032d93f642f64180aa3");
+});
+
+test("getRegistryAddress resolves the local registry and throws for an undeployed chain", () => {
+  assert.equal(
+    getRegistryAddress(31337, "AttestationRegistry"),
+    "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  );
+  assert.throws(
+    () => getRegistryAddress(8453, "AttestationRegistry"),
+    /no registry for AttestationRegistry on chainId 8453/,
+  );
+});
+
+test("findRegistryAddress is the non-throwing lookup the web degrades on (undeployed → undefined)", () => {
+  assert.equal(
+    findRegistryAddress(31337, "AttestationRegistry"),
+    "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  );
+  // Base mainnet: not yet anchored → undefined (the web shows "not yet anchored", AD-14).
+  assert.equal(findRegistryAddress(8453, "AttestationRegistry"), undefined);
 });
 
 test("viem 2.54.1 isAddress/getAddress behaviour the guard depends on", () => {

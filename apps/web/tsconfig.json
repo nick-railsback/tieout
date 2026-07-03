@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // The shell is a browser app (DOM) whose headless tests run under Node —
+    // both lib + types are present so `src` (browser) and `test` (node) typecheck.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"]
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
