@@ -71,7 +71,13 @@ function findTokenAddress(table: readonly ManifestAddress[], symbol: string): st
   return row ? row.address.toLowerCase() : null;
 }
 
-function decodeArgs(
+/**
+ * Decode one raw log against a single-event ABI, never throwing: a malformed log
+ * becomes an `err(message)`, not an exception. This is the ONE guarded decode
+ * shared by `derive` (here) and `reconstruct`'s in-window rebase collection, so
+ * neither site can drift into an untyped throw on hostile input (AD-9).
+ */
+export function decodeArgs(
   event: AbiEvent,
   log: RawLog,
 ): Result<Record<string, unknown>, string> {

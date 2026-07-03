@@ -1,6 +1,7 @@
-import { type PublicClient, decodeEventLog } from "viem";
+import { type PublicClient } from "viem";
 import { getFeedAddress, getTokenAddress } from "@tieout/addresses";
 import { TOKEN_REBASED_EVENT, TOKEN_REBASED_TOPIC0 } from "./events.ts";
+import { type RawLog } from "./rawlog.ts";
 import {
   capturePins,
   crossCheckRateCurveArchive,
@@ -12,7 +13,7 @@ import {
 } from "./l0fetch.ts";
 import { type Manifest, type ManifestAddress, type PriceObservation, type RatePoint } from "./manifest.ts";
 import { buildRateCurve, type RebaseObservation } from "./ratecurve.ts";
-import { derive } from "./derivation.ts";
+import { decodeArgs, derive } from "./derivation.ts";
 import { ENGINE_VERSION } from "./version.ts";
 import { type Result, err, ok } from "./result.ts";
 
@@ -43,6 +44,7 @@ export type ReconstructError =
   | { readonly kind: "rate-curve"; readonly detail: string }
   | { readonly kind: "rate-crosscheck"; readonly detail: string }
   | { readonly kind: "price"; readonly detail: string }
+  | { readonly kind: "rebase-decode"; readonly block: bigint; readonly detail: string }
   | { readonly kind: "derive"; readonly detail: string };
 
 export type Reconstruction = {
@@ -52,6 +54,35 @@ export type Reconstruction = {
   readonly priceObservation: PriceObservation;
 };
 
+/**
+ * Collect the in-window `TokenRebased` observations from already-fetched raw
+ * logs. Uses the SAME guarded `decodeArgs` as the shared derivation, so a
+ * malformed rebase log returns a typed `rebase-decode` error rather than
+ * escaping `reconstructManifest` as an uncaught throw (the design promises a
+ * typed `Result`, and `verify` must fail legibly on a hostile report).
+ */
+export function collectInWindowRebases(
+  rawLogs: readonly RawLog[],
+  stETHAddress: string,
+): Result<RebaseObservation[], ReconstructError> {
+  const stETH = stETHAddress.toLowerCase();
+  const inWindowRebases: RebaseObservation[] = [];
+  for (const log of rawLogs) {
+    if (log.topics[0] === TOKEN_REBASED_TOPIC0 && log.address.toLowerCase() === stETH) {
+      const decoded = decodeArgs(TOKEN_REBASED_EVENT, log);
+      if (!decoded.ok) {
+        return err({ kind: "rebase-decode", block: log.blockNumber, detail: decoded.error });
+      }
+      inWindowRebases.push({
+        rebaseBlock: log.blockNumber,
+        postTotalEther: decoded.value["postTotalEther"] as bigint,
+        postTotalShares: decoded.value["postTotalShares"] as bigint,
+      });
+    }
+  }
+  return ok(inWindowRebases);
+}
+
 export async function reconstructManifest(
   client: PublicClient,
   params: ReconstructParams,
@@ -59,23 +90,9 @@ export async function reconstructManifest(
   const rawLogs = await fetchRawLogs(client, params.startBlock, params.endBlock, params.blocksPerChunk);
 
   // In-window rebase observations (decoded from the raw logs we already fetched).
-  const stETH = getTokenAddress(1, "stETH");
-  const inWindowRebases: RebaseObservation[] = [];
-  for (const log of rawLogs) {
-    if (log.topics[0] === TOKEN_REBASED_TOPIC0 && log.address.toLowerCase() === stETH) {
-      const { args } = decodeEventLog({
-        abi: [TOKEN_REBASED_EVENT],
-        data: log.data,
-        topics: [...log.topics] as [`0x${string}`, ...`0x${string}`[]],
-      });
-      const a = args as unknown as { postTotalShares: bigint; postTotalEther: bigint };
-      inWindowRebases.push({
-        rebaseBlock: log.blockNumber,
-        postTotalEther: a.postTotalEther,
-        postTotalShares: a.postTotalShares,
-      });
-    }
-  }
+  const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(1, "stETH"));
+  if (!inWindow.ok) return inWindow;
+  const inWindowRebases = inWindow.value;
 
   // Seed the rate curve from the last rebase at/before startBlock (AD-6),
   // discovered from public data — no out-of-band config (keeps verify trustless).
