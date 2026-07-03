@@ -55,6 +55,16 @@ contract MockStakedVaultTest is Test {
         vault.accrueRewards(50e18);
     }
 
+    // AC-2.1.a — accruing before any shares exist has nothing to grow: the guard
+    // reverts NoShares rather than dividing by zero or silently accruing at a 0
+    // rate in the deterministic harness. Pinning the specific NoShares selector
+    // (not a generic panic) is what makes this catch a dropped guard.
+    function test_accrueRewards_beforeAnyDeposit_revertsNoShares() public {
+        assertEq(vault.totalSupply(), 0);
+        vm.expectRevert(MockStakedVault.NoShares.selector);
+        vault.accrueRewards(50e18);
+    }
+
     // AC-2.4.a — the AD-6 dual-derivation identity ON THE MOCK: the event-derived
     // rate (what RewardAccrued carries: totalAssets*1e18/totalSupply) must EXACTLY
     // equal the archive read convertToAssets(1e18). This is the mock (Story 2.1)
