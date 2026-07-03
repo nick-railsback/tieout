@@ -38,6 +38,7 @@ import {
   type ReportPins,
   type ReportValuation,
 } from "./recon.ts";
+import { DECIMAL_INT } from "./validate.ts";
 
 /** wstETH shares and stETH rewards are both 18-dp wei on the report. */
 const WEI_DECIMALS = 18;
@@ -155,7 +156,7 @@ function asString(object: Record<string, unknown>, key: string, path: string): s
 
 function asBigint(object: Record<string, unknown>, key: string, path: string): bigint {
   const value = object[key];
-  if (typeof value !== "string" || !/^-?[0-9]+$/.test(value)) {
+  if (typeof value !== "string" || !DECIMAL_INT.test(value)) {
     throw new Error(`report.${path}${key} must be a decimal-string integer`);
   }
   return BigInt(value);
