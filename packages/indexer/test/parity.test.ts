@@ -11,7 +11,6 @@ import {
 } from "@tieout/recon";
 import { SLICE_END_BLOCK, SLICE_START_BLOCK } from "@tieout/recon";
 import { type PonderLogEvent, ponderEventToRawLog } from "../src/adapter.ts";
-import config from "../ponder.config.ts";
 
 // T8 / AC-2.2.d — identical raw logs through the Ponder-assembled path and the
 // verify eth_getLogs path produce a BYTE-IDENTICAL manifest.
@@ -85,7 +84,12 @@ test("AD-9/AC-2.2.d: Ponder path and eth_getLogs path yield a byte-identical man
 // Health-audit DRY finding: the Ponder config's indexed window must be the SAME
 // pinned slice `verify`/`pin-slice` reconstruct — single-sourced from
 // `@tieout/recon`. This binds it, so re-hardcoding a literal here fails loudly.
-test("AD-9: the Ponder config indexes exactly the shared pinned slice", () => {
+test("AD-9: the Ponder config indexes exactly the shared pinned slice", async () => {
+  // The config now fails fast on a missing PONDER_RPC_URL_1 (see env.test.ts),
+  // so provide one and import it dynamically — the static import would throw at
+  // module-eval time in any environment without the var (e.g. CI).
+  process.env.PONDER_RPC_URL_1 ??= "https://archive.example/key";
+  const { default: config } = await import("../ponder.config.ts");
   const start = Number(SLICE_START_BLOCK);
   const end = Number(SLICE_END_BLOCK);
   for (const source of [config.contracts.WstETH, config.contracts.StETH]) {

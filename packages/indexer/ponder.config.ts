@@ -2,6 +2,7 @@ import { createConfig } from "ponder";
 import { http } from "viem";
 import { getTokenAddress } from "@tieout/addresses";
 import { SLICE_END_BLOCK, SLICE_START_BLOCK, TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
+import { requirePonderRpcUrl } from "./src/env.ts";
 
 /**
  * Ponder live adapter (AD-9 Ponder side, Story 2.2). Two log sources — wstETH
@@ -24,7 +25,7 @@ const END_BLOCK = Number(SLICE_END_BLOCK);
 
 export default createConfig({
   chains: {
-    mainnet: { id: 1, rpc: http(process.env.PONDER_RPC_URL_1) },
+    mainnet: { id: 1, rpc: http(requirePonderRpcUrl()) },
   },
   contracts: {
     WstETH: {
