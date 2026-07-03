@@ -11,7 +11,7 @@ committed report ships its real `reportHash` as data (AD-13).
 pnpm dev        # Vite dev server
 pnpm build      # production build
 pnpm test       # headless view/live tests (node:test)
-pnpm typecheck  # tsc type-check
+pnpm typecheck  # tsc --noEmit
 ```
 
 ## Environment (`VITE_*`)
