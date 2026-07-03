@@ -35,6 +35,7 @@ export {
 } from "./manifest.ts";
 export {
   type Report,
+  type ReportValuation,
   type ReportPins,
   type ReportLot,
   type AxisResult,

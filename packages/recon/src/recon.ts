@@ -15,6 +15,35 @@ import { ENGINE_VERSION, REPORT_SCHEMA_VERSION } from "./version.ts";
 /** stETH-per-wstETH rate fixed-point scale (AD-2): `rate1e18` is 1e18-scaled. */
 const RATE_SCALE = 10n ** 18n;
 
+/** wstETH shares are wei — 18 dp. Numerically equal to {@link RATE_SCALE} but a
+ * distinct AD-2 normalization axis: this rescales the share balance, that
+ * rescales the 1e18 rate. Named separately so the USD denominator reads as the
+ * three explicit scales it folds (shares · rate · price). */
+const SHARES_SCALE = 10n ** 18n;
+
+/**
+ * The report's declared fixed USD scale (AD-18/AD-20): micro-USD, 6 dp. The
+ * golden ledger authors `costBasisUsd` at this scale ($250,000 = 250000000000),
+ * so `currentValueUsd` MUST share it or `unrealizedPnl = currentValueUsd − Σ
+ * costBasisUsd` is meaningless. Emitted as a decimal-string bigint — never a
+ * float, and never via a viem unit helper (`parseUnits` rounds; `formatUnits`
+ * yields a human string), which would violate AD-2's one-truncating-division
+ * rule. [viem@2.54.1 src/utils/unit/parseUnits.ts#L17-L57]
+ */
+const USD_DECIMALS = 6n;
+const USD_SCALE = 10n ** USD_DECIMALS;
+
+/**
+ * Upper bound on the feed's `decimals`, guarding the ONE input-controlled
+ * exponentiation on the canonical path (`10n ** price.decimals`). A Chainlink
+ * `decimals()` is a `uint8` and real feeds are ≤ 18, so 36 is generous. Without
+ * this bound a validated-but-adversarial manifest — `parseNonNegInt` bounds
+ * `decimals` below but NOT above — could carry an astronomically large value and
+ * make `recon` materialize a multi-billion-digit bigint, hanging the trustless
+ * re-derivation path (a DoS). [Source: docs/ARCHITECTURE-SPINE.md#AD-18]
+ */
+const MAX_PRICE_DECIMALS = 36n;
+
 export type AxisResult = {
   /** Event/curve-derived onchain quantity. */
   readonly onchain: bigint;
@@ -55,6 +84,31 @@ export type ReportPins = {
 };
 
 /**
+ * The USD valuation leg (AD-18/AD-20). `currentValueUsd` is the CHAIN-derived
+ * position (`sharesValued`) valued at the block-pinned public price observation
+ * — an onchain-derived fact. `costBasisUsd` (Σ of the book's per-lot cost) is a
+ * BOOK claim, so `unrealizedPnl` mixes a chain fact with a book claim (AD-16):
+ * a reproduced hash attests the derivation, never the honesty of the books.
+ * Every integer is a decimal-string `bigint`; `unrealizedPnl` is signed —
+ * negative when the chain value is below the booked cost basis.
+ */
+export type ReportValuation = {
+  /** The declared fixed report USD scale — 6 (micro-USD) for the MVP (AD-20). */
+  readonly usdDecimals: bigint;
+  readonly currentValueUsd: bigint;
+  readonly costBasisUsd: bigint;
+  readonly unrealizedPnl: bigint;
+  /** The chain-derived shares actually valued (`onchainShares`, AD-16). */
+  readonly sharesValued: bigint;
+  /** The stETH-per-wstETH rate used — `rateEnd`, reused from the reward axis. */
+  readonly rate1e18: bigint;
+  /** Price provenance, read from `manifest.priceObservation` (never assumed). */
+  readonly roundId: bigint;
+  readonly answer: bigint;
+  readonly priceDecimals: bigint;
+};
+
+/**
  * The hash-addressed reconciliation report — the single reproducible evidence
  * artifact for a position. Merkle-shaped: an ordered list of per-lot records
  * (AD-13), embedding `manifestHash`, `ledgerHash`, `engineVersion`, and the
@@ -74,6 +128,7 @@ export type Report = {
   };
   readonly lots: readonly ReportLot[];
   readonly discrepancies: readonly Discrepancy[];
+  readonly valuation: ReportValuation;
 };
 
 export type ReconError = {
@@ -257,6 +312,51 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
       costBasisUsd: lot.costBasisUsd,
     }));
 
+  // --- USD valuation + unrealized P/L (AD-18 consumption, AD-2, AD-20) ---
+  // Value the CHAIN-derived closing balance (onchainShares, AD-16) at the
+  // block-pinned public price observation already carried in the hashed manifest
+  // — no `latest`, no DEX spot. The three input scales are folded into a single
+  // numerator/denominator with EXACTLY ONE truncating division (AD-2):
+  //
+  //   onchainShares(18dp) · rateEnd(1e18) · answer(feed-native) · 10^USD_DECIMALS
+  //   ───────────────────────────────────────────────────────────────────────────
+  //             10^18 (shares) · 10^18 (rate) · 10^decimals (price)
+  //
+  // `priceObservation.decimals` is read from the manifest, NEVER assumed 8.
+  const price = manifest.priceObservation;
+  // Guard the one input-controlled exponentiation (review follow-up, AD-18): a
+  // manifest can pass validateManifest with an unbounded `decimals`, so bound it
+  // here before `10n ** decimals` rather than trust the value's magnitude.
+  if (price.decimals > MAX_PRICE_DECIMALS) {
+    return err({
+      code: "price-decimals-out-of-range",
+      message:
+        `priceObservation.decimals ${price.decimals} exceeds the supported ` +
+        `max ${MAX_PRICE_DECIMALS} (AD-18)`,
+    });
+  }
+  const priceScale = 10n ** price.decimals;
+  const usdNumerator = onchainShares * rateEnd * price.answer * USD_SCALE;
+  const usdDenominator = SHARES_SCALE * RATE_SCALE * priceScale;
+  const currentValueUsd = usdNumerator / usdDenominator; // one truncating `/` (AD-2)
+
+  let costBasisUsd = 0n;
+  for (const lot of ledger.lots) costBasisUsd += lot.costBasisUsd;
+  // Subtraction only (AD-2); signed — negative when chain value < booked cost.
+  const unrealizedPnl = currentValueUsd - costBasisUsd;
+
+  const valuation: ReportValuation = {
+    usdDecimals: USD_DECIMALS,
+    currentValueUsd,
+    costBasisUsd,
+    unrealizedPnl,
+    sharesValued: onchainShares,
+    rate1e18: rateEnd,
+    roundId: price.roundId,
+    answer: price.answer,
+    priceDecimals: price.decimals,
+  };
+
   const report: Report = {
     schemaVersion: REPORT_SCHEMA_VERSION,
     engineVersion: ENGINE_VERSION,
@@ -273,6 +373,7 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     axes: { closingShares, reward },
     lots,
     discrepancies,
+    valuation,
   };
 
   return ok({ report, reportHash: canonicalHash(canonicalReport(report)) });
@@ -320,6 +421,21 @@ export function canonicalReport(report: Report): CanonicalValue {
               logIndex: d.breakingEvent.logIndex,
             },
     })),
+    valuation: canonicalValuation(report.valuation),
+  };
+}
+
+function canonicalValuation(valuation: ReportValuation): CanonicalValue {
+  return {
+    usdDecimals: valuation.usdDecimals,
+    currentValueUsd: valuation.currentValueUsd,
+    costBasisUsd: valuation.costBasisUsd,
+    unrealizedPnl: valuation.unrealizedPnl,
+    sharesValued: valuation.sharesValued,
+    rate1e18: valuation.rate1e18,
+    roundId: valuation.roundId,
+    answer: valuation.answer,
+    priceDecimals: valuation.priceDecimals,
   };
 }
 
