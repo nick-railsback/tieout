@@ -11,6 +11,7 @@
 export { type CanonicalValue, canonicalize, canonicalBytes, canonicalHash } from "./canonical.ts";
 export { type Result, type Ok, type Err, ok, err } from "./result.ts";
 export { ENGINE_VERSION, REPORT_SCHEMA_VERSION, LEDGER_SCHEMA_VERSION } from "./version.ts";
+export { SLICE_START_BLOCK, SLICE_END_BLOCK } from "./slice.ts";
 export { type FieldError } from "./validate.ts";
 export {
   type Ledger,

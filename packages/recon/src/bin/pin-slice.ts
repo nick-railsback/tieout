@@ -7,6 +7,7 @@ import { canonicalManifest, manifestHash } from "../manifest.ts";
 import { canonicalReport, recon } from "../recon.ts";
 import { reconstructManifest } from "../reconstruct.ts";
 import { LEDGER_SCHEMA_VERSION } from "../version.ts";
+import { SLICE_START_BLOCK, SLICE_END_BLOCK } from "../slice.ts";
 
 /**
  * Generate the real-window golden for the Batch 2 discrepancy slice (Story 2.8).
@@ -18,8 +19,8 @@ import { LEDGER_SCHEMA_VERSION } from "../version.ts";
  *
  *   node src/bin/pin-slice.ts   (ETH_RPC_URL in env; writes fixtures/slice/)
  */
-const START_BLOCK = 25444667n;
-const END_BLOCK = 25444922n;
+const START_BLOCK = SLICE_START_BLOCK;
+const END_BLOCK = SLICE_END_BLOCK;
 const BLOCKS_PER_CHUNK = 9n; // free-tier eth_getLogs cap
 const SUBJECT = "0xd0558b2f0f0a00cbc6176c15fec82ebb8e7bb696";
 /** The injected discrepancy: the books under-report the reward by this many wei. */

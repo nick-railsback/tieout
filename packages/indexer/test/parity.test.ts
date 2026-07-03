@@ -9,7 +9,9 @@ import {
   manifestHash,
   viemLogToRawLog,
 } from "@tieout/recon";
+import { SLICE_END_BLOCK, SLICE_START_BLOCK } from "@tieout/recon";
 import { type PonderLogEvent, ponderEventToRawLog } from "../src/adapter.ts";
+import config from "../ponder.config.ts";
 
 // T8 / AC-2.2.d — identical raw logs through the Ponder-assembled path and the
 // verify eth_getLogs path produce a BYTE-IDENTICAL manifest.
@@ -78,4 +80,16 @@ test("AD-9/AC-2.2.d: Ponder path and eth_getLogs path yield a byte-identical man
   assert.ok(fromPonder.ok && fromVerify.ok);
   assert.equal(manifestHash(fromPonder.value), manifestHash(fromVerify.value));
   assert.deepEqual(fromPonder.value, fromVerify.value);
+});
+
+// Health-audit DRY finding: the Ponder config's indexed window must be the SAME
+// pinned slice `verify`/`pin-slice` reconstruct — single-sourced from
+// `@tieout/recon`. This binds it, so re-hardcoding a literal here fails loudly.
+test("AD-9: the Ponder config indexes exactly the shared pinned slice", () => {
+  const start = Number(SLICE_START_BLOCK);
+  const end = Number(SLICE_END_BLOCK);
+  for (const source of [config.contracts.WstETH, config.contracts.StETH]) {
+    assert.equal(source.startBlock, start);
+    assert.equal(source.endBlock, end);
+  }
 });

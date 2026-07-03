@@ -1,7 +1,7 @@
 import { createConfig } from "ponder";
 import { http } from "viem";
 import { getTokenAddress } from "@tieout/addresses";
-import { TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
+import { SLICE_END_BLOCK, SLICE_START_BLOCK, TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
 
 /**
  * Ponder live adapter (AD-9 Ponder side, Story 2.2). Two log sources — wstETH
@@ -16,9 +16,11 @@ import { TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
  * `DATABASE_SCHEMA` set, `PONDER_TELEMETRY_DISABLED=1`, and `PONDER_RPC_URL_1`.
  */
 
-// The pinned Batch 2 discrepancy slice (Story 2.8).
-const START_BLOCK = 25_444_667;
-const END_BLOCK = 25_444_922;
+// The pinned Batch 2 discrepancy slice (Story 2.8) — single-sourced from
+// `@tieout/recon` (the same origin `verify`/`pin-slice` use) so the two fetch
+// universes cannot cover different windows. Narrowed to `number` for Ponder.
+const START_BLOCK = Number(SLICE_START_BLOCK);
+const END_BLOCK = Number(SLICE_END_BLOCK);
 
 export default createConfig({
   chains: {
