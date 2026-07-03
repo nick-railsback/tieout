@@ -201,9 +201,15 @@ export async function capturePins(
 ): Promise<PinCapture> {
   const start = await client.getBlock({ blockNumber: startBlock });
   const end = await client.getBlock({ blockNumber: endBlock });
+  // A null hash is a pending block — impossible over a finalized pinned range.
+  // Throw the pointed error at the source (mirroring viemLogToRawLog) rather than
+  // coalescing to "" and deferring to a distant, vaguer BYTES32 validation.
+  if (start.hash === null || end.hash === null) {
+    throw new Error("L0 fetch: pending block (null blockHash) over a finalized pinned range");
+  }
   return {
-    startHash: (start.hash ?? "").toLowerCase(),
-    endHash: (end.hash ?? "").toLowerCase(),
+    startHash: start.hash.toLowerCase(),
+    endHash: end.hash.toLowerCase(),
     endTimestamp: end.timestamp,
   };
 }
