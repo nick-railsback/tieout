@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { type Hex, encodeAbiParameters, encodeEventTopics } from "viem";
-import { collectInWindowRebases } from "../src/reconstruct.ts";
+import { type Hex, type PublicClient, encodeAbiParameters, encodeEventTopics } from "viem";
+import { collectInWindowRebases, reconstructManifest } from "../src/reconstruct.ts";
 import { TOKEN_REBASED_EVENT, TOKEN_REBASED_TOPIC0, TRANSFER_TOPIC0 } from "../src/events.ts";
 import { type RawLog } from "../src/rawlog.ts";
 
@@ -66,4 +66,29 @@ test("collectInWindowRebases ignores non-rebase and non-stETH logs", () => {
   const result = collectInWindowRebases([transfer, otherToken], STETH);
   assert.ok(result.ok);
   assert.deepEqual(result.value, []);
+});
+
+// Health-audit Reliability finding (REL-2): reconstructManifest's signature
+// promises `Result<Reconstruction, ReconstructError>`, but every RPC call in its
+// body except resolvePriceObservation was unguarded — a getLogs failure (typo'd
+// ETH_RPC_URL, DNS error, non-archive endpoint, a 429 outlasting the retries)
+// escaped as a raw viem throw, crashing the trustless CLI on its most common
+// misconfiguration. This pins that an RPC failure surfaces as a typed Result.
+test("REL-2: reconstructManifest maps an RPC throw to a typed rpc error, never throwing", async () => {
+  const client = {
+    getLogs: async () => {
+      throw new Error("HTTP request failed: 401 Unauthorized");
+    },
+  } as unknown as PublicClient;
+
+  let result: Awaited<ReturnType<typeof reconstructManifest>>;
+  await assert.doesNotReject(async () => {
+    result = await reconstructManifest(client, {
+      startBlock: 21_000_000n,
+      endBlock: 21_000_000n,
+      blocksPerChunk: 9n,
+    });
+  });
+  assert.ok(!result!.ok);
+  assert.equal(result!.error.kind, "rpc");
 });

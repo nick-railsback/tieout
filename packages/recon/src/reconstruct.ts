@@ -45,7 +45,8 @@ export type ReconstructError =
   | { readonly kind: "rate-crosscheck"; readonly detail: string }
   | { readonly kind: "price"; readonly detail: string }
   | { readonly kind: "rebase-decode"; readonly block: bigint; readonly detail: string }
-  | { readonly kind: "derive"; readonly detail: string };
+  | { readonly kind: "derive"; readonly detail: string }
+  | { readonly kind: "rpc"; readonly detail: string };
 
 export type Reconstruction = {
   readonly manifest: Manifest;
@@ -87,47 +88,57 @@ export async function reconstructManifest(
   client: PublicClient,
   params: ReconstructParams,
 ): Promise<Result<Reconstruction, ReconstructError>> {
-  const rawLogs = await fetchRawLogs(client, params.startBlock, params.endBlock, params.blocksPerChunk);
+  // Honor the `Result` contract for EVERY failure mode. The RPC calls below
+  // (getLogs/getBlock/readContract) and the boundary throws they wrap
+  // (viemLogToRawLog/capturePins on a pending block) can all throw; a typo'd
+  // ETH_RPC_URL, DNS error, non-archive endpoint, or a 429 outlasting the
+  // retries must surface as a typed `rpc` error — not a raw stack trace out of
+  // the trustless verifier. (resolvePriceObservation already wraps its own.)
+  try {
+    const rawLogs = await fetchRawLogs(client, params.startBlock, params.endBlock, params.blocksPerChunk);
 
-  // In-window rebase observations (decoded from the raw logs we already fetched).
-  const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(1, "stETH"));
-  if (!inWindow.ok) return inWindow;
-  const inWindowRebases = inWindow.value;
+    // In-window rebase observations (decoded from the raw logs we already fetched).
+    const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(1, "stETH"));
+    if (!inWindow.ok) return inWindow;
+    const inWindowRebases = inWindow.value;
 
-  // Seed the rate curve from the last rebase at/before startBlock (AD-6),
-  // discovered from public data — no out-of-band config (keeps verify trustless).
-  const seedBlock = await findSeedRebaseBlock(client, params.startBlock);
-  const seed = await fetchRebaseAt(client, seedBlock);
-  if (seed === null) return err({ kind: "no-seed-rebase", block: seedBlock });
-  const curve = buildRateCurve([seed, ...inWindowRebases], params.startBlock, params.endBlock);
-  if (!curve.ok) return err({ kind: "rate-curve", detail: JSON.stringify(curve.error) });
+    // Seed the rate curve from the last rebase at/before startBlock (AD-6),
+    // discovered from public data — no out-of-band config (keeps verify trustless).
+    const seedBlock = await findSeedRebaseBlock(client, params.startBlock);
+    const seed = await fetchRebaseAt(client, seedBlock);
+    if (seed === null) return err({ kind: "no-seed-rebase", block: seedBlock });
+    const curve = buildRateCurve([seed, ...inWindowRebases], params.startBlock, params.endBlock);
+    if (!curve.ok) return err({ kind: "rate-curve", detail: JSON.stringify(curve.error) });
 
-  // AD-6 cross-check on the canonical path: each curve rate must EXACTLY equal
-  // the archive stEthPerToken() at its rebase block (FR7 — never a tolerance).
-  const crossChecked = await crossCheckRateCurveArchive(client, curve.value);
-  if (!crossChecked.ok) return err({ kind: "rate-crosscheck", detail: JSON.stringify(crossChecked.error) });
+    // AD-6 cross-check on the canonical path: each curve rate must EXACTLY equal
+    // the archive stEthPerToken() at its rebase block (FR7 — never a tolerance).
+    const crossChecked = await crossCheckRateCurveArchive(client, curve.value);
+    if (!crossChecked.ok) return err({ kind: "rate-crosscheck", detail: JSON.stringify(crossChecked.error) });
 
-  const pins = await capturePins(client, params.startBlock, params.endBlock);
-  const price = await resolvePriceObservation(
-    client,
-    getFeedAddress(1, "stETH/USD"),
-    params.endBlock,
-    pins.endTimestamp,
-  );
-  if (!price.ok) return err({ kind: "price", detail: JSON.stringify(price.error) });
+    const pins = await capturePins(client, params.startBlock, params.endBlock);
+    const price = await resolvePriceObservation(
+      client,
+      getFeedAddress(1, "stETH/USD"),
+      params.endBlock,
+      pins.endTimestamp,
+    );
+    if (!price.ok) return err({ kind: "price", detail: JSON.stringify(price.error) });
 
-  const manifest = derive({
-    rawLogs,
-    startBlock: params.startBlock,
-    startHash: pins.startHash,
-    endBlock: params.endBlock,
-    endHash: pins.endHash,
-    addressTable: mainnetTokenTable(),
-    engineVersion: ENGINE_VERSION,
-    priceObservation: price.value,
-    rateCurve: curve.value,
-  });
-  if (!manifest.ok) return err({ kind: "derive", detail: JSON.stringify(manifest.error) });
+    const manifest = derive({
+      rawLogs,
+      startBlock: params.startBlock,
+      startHash: pins.startHash,
+      endBlock: params.endBlock,
+      endHash: pins.endHash,
+      addressTable: mainnetTokenTable(),
+      engineVersion: ENGINE_VERSION,
+      priceObservation: price.value,
+      rateCurve: curve.value,
+    });
+    if (!manifest.ok) return err({ kind: "derive", detail: JSON.stringify(manifest.error) });
 
-  return ok({ manifest: manifest.value, pins, rateCurve: curve.value, priceObservation: price.value });
+    return ok({ manifest: manifest.value, pins, rateCurve: curve.value, priceObservation: price.value });
+  } catch (caught) {
+    return err({ kind: "rpc", detail: (caught as Error).message });
+  }
 }

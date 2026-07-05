@@ -12,7 +12,7 @@ import {
   bindingCovers,
   verifyReportSignature,
 } from "../signature.ts";
-import { isPlainObject } from "../validate.ts";
+import { isPlainObject, parseNonNegInt } from "../validate.ts";
 import { DATA_CHAIN_ID } from "../filter.ts";
 import { ENGINE_VERSION } from "../version.ts";
 
@@ -96,6 +96,18 @@ async function main(): Promise<number> {
   }
   const pins = pinsRaw as Record<string, string>;
 
+  // The block pins are the only structural fields fed to `BigInt()`. Route them
+  // through the same `parseNonNegInt` every other input boundary uses, INSIDE the
+  // guard — `BigInt("abc")` throws a SyntaxError and `BigInt("-5")` silently
+  // succeeds, so a bare cast here would crash (or admit a negative block) exactly
+  // where the comment above promises a clean typed failure. [REL-1]
+  const startBlockR = parseNonNegInt(pins["startBlock"], "pins.startBlock");
+  if (!startBlockR.ok) return fail(`malformed report.json (${startBlockR.error.message})`);
+  const endBlockR = parseNonNegInt(pins["endBlock"], "pins.endBlock");
+  if (!endBlockR.ok) return fail(`malformed report.json (${endBlockR.error.message})`);
+  const startBlock = startBlockR.value;
+  const endBlock = endBlockR.value;
+
   // 1) engineVersion FIRST — a mismatch is version skew, not a hash failure (AD-8).
   if (report["engineVersion"] !== ENGINE_VERSION) {
     return fail(`version skew: report engineVersion "${String(report["engineVersion"])}" != verifier ${ENGINE_VERSION}`);
@@ -105,8 +117,8 @@ async function main(): Promise<number> {
   // High retryCount lets viem absorb the free-tier 25 req/min limit (429 → backoff).
   const client = createPublicClient({ chain: mainnet, transport: http(rpc, { retryCount: 12 }) });
   const reconstructed = await reconstructManifest(client, {
-    startBlock: BigInt(pins["startBlock"]!),
-    endBlock: BigInt(pins["endBlock"]!),
+    startBlock,
+    endBlock,
     blocksPerChunk,
   });
   if (!reconstructed.ok) return fail(`reconstruct failed: ${JSON.stringify(reconstructed.error)}`);
@@ -157,8 +169,8 @@ async function main(): Promise<number> {
       const expected: ReportBinding = {
         reportHash: result.value.reportHash,
         subject: report["subject"] as `0x${string}`,
-        startBlock: BigInt(pins["startBlock"]!),
-        endBlock: BigInt(pins["endBlock"]!),
+        startBlock,
+        endBlock,
         engineVersion: report["engineVersion"] as string,
         chainId: BigInt(DATA_CHAIN_ID),
       };
