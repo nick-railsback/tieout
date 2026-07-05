@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Ponder indexer — SCAFFOLD ONLY for Batch 1. The derivation adapter is Batch 2.",
+  "description": "Ponder indexer (Batch 2) — indexes the pinned wstETH Transfer / stETH TokenRebased slice and accumulates the shared RawLog idempotently; the whole-range read-back into derive is deferred (see README).",
   "scripts": {
-    "dev": "ponder dev",
+    "dev": "echo 'Refusing to run: use `ponder start`, never `ponder dev` — dev drops and recreates tables and disables crash recovery, breaking the NFR-0 determinism harness (see README).' && exit 1",
     "start": "ponder start",
     "build": "ponder codegen",
     "typecheck": "ponder codegen && tsc --noEmit -p tsconfig.json",
