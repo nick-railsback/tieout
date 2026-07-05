@@ -46,8 +46,8 @@ AD-8 would ordinarily bump it to `0.2.0`; the maintainer chose to keep the
 engine at `0.1.0` for the v0.1.0 pre-release cycle so an engine `0.2.0` does not
 read like a product release on the `feature/v0.1.0` branch. The report-shape
 change is marked by the schema bump above; a post-MVP rebrand of `engineVersion`
-(so AD-8 bumps can resume without the product-version collision) is logged in
-`deferred-work.md`.
+(so AD-8 bumps can resume without the product-version collision) is a deliberate
+post-MVP follow-up.
 
 Regenerated golden digests (`fixtures/golden/`). Because the USD figures live in
 the *report* and `engineVersion` is unchanged, **only `reportHash` moves** —

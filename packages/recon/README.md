@@ -45,6 +45,12 @@ pnpm build                                    # compile to dist/ (downstream con
 # (the auditor's trustless path). Needs a mainnet ARCHIVE endpoint.
 ETH_RPC_URL=<archive-rpc> pnpm verify fixtures/slice/report.json fixtures/slice/ledger.json
 
+# Optional VERIFY_CHUNK sets the eth_getLogs block-range per chunk (default 9,
+# under the free tier's ~10-block cap). On a higher-range endpoint, raise it to
+# fetch large windows far faster — a pure fetch knob; determinism is chunk-
+# independent so it never changes the manifest hash.
+ETH_RPC_URL=<archive-rpc> VERIFY_CHUNK=2000 pnpm verify fixtures/slice/report.json fixtures/slice/ledger.json
+
 # Regenerate the hand-authored golden fixture (pure — no RPC).
 pnpm gen:golden
 

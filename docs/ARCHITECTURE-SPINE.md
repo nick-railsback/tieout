@@ -104,7 +104,7 @@ Stable ascending IDs; never renumbered or reused. These rules are deliberately b
 ### AD-9 — One shared derivation function (incl. normalization)
 - **Binds:** `indexer` (Ponder) and the `verify` fetch path
 - **Prevents:** byte-divergent manifests from two derivation implementations
-- **Rule:** the raw-logs → manifest derivation — **including log normalization** — is a single pure function invoked by both the Ponder live adapter and the `verify` `eth_getLogs` adapter. Never reimplemented or partially duplicated per caller. Its input is a declared normalized `RawLog` record `{address, topics, data, blockNumber, txIndex, logIndex, blockHash}` with a documented assembly mapping per adapter — Ponder's `event.log` carries only `{address, topics, data, logIndex}`, so block/tx fields are assembled from `event.block`/`event.transaction`, and the Ponder adapter accumulates events until historical sync completes before invoking the whole-range derivation. Both adapters consume one shared address+topic filter definition derived from the AD-5 table — identical normalization over different filter universes still splits the manifest. **Ponder is not on the verify path.**
+- **Rule:** the raw-logs → manifest derivation — **including log normalization** — is a single pure function invoked by both the Ponder live adapter and the `verify` `eth_getLogs` adapter. Never reimplemented or partially duplicated per caller. Its input is a declared normalized `RawLog` record `{address, topics, data, blockNumber, txIndex, logIndex, blockHash, txHash}` with a documented assembly mapping per adapter — Ponder's `event.log` carries only `{address, topics, data, logIndex}`, so block/tx fields are assembled from `event.block`/`event.transaction`, and the Ponder adapter accumulates events until historical sync completes before invoking the whole-range derivation. Both adapters consume one shared address+topic filter definition derived from the AD-5 table — identical normalization over different filter universes still splits the manifest. **Ponder is not on the verify path.**
 
 ### AD-10 — Trust-layered, finality-backed cache
 - **Binds:** `verify`, proof-bundle export
@@ -191,8 +191,6 @@ SEED — pinned and web-verified 2026-07-01; the code owns it thereafter. Point-
 | Canonical JSON | RFC 8785 (JCS) — library or in-house canonicalizer |
 | Data chain | Ethereum mainnet · chainId 1 (wstETH) |
 | Anchor chain | Base mainnet · 8453 (demo) · Base Sepolia · 84532 (rehearsal) · Anvil (tests) |
-
-> ⚠ Cold-start check: confirm Solidity 0.8.35 is a real release before pinning it in code — the project's context packs confirm releases only up to 0.8.27. If it is not, pin the newest real 0.8.x and update this row (see epics.md, Pre-Implementation Verification Notes).
 
 ## Structural Seed
 
