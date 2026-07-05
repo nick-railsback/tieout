@@ -54,7 +54,15 @@ export type AxisResult = {
   readonly tieOut: boolean;
 };
 
-/** The exact breaking event named for a discrepancy (AC-1.5.c). */
+/**
+ * The last in-window event that COULD have broken an axis — a heuristic locator,
+ * NOT a proven cause (AC-1.5.c). Each axis is an aggregate sum, so when a window
+ * holds several in-window rebases (reward) or subject transfers (closingShares)
+ * the delta cannot single out which one the books missed; `recon` names the most
+ * recent candidate. Consumers must phrase it as a locator ("last in-window …"),
+ * never as factual attribution. (The field is `breakingEvent` for wire/JSON
+ * stability — renaming it would change the canonical report bytes.)
+ */
 export type BreakingEvent = {
   readonly txHash: string;
   readonly blockNumber: bigint;
@@ -151,7 +159,8 @@ function inWindow(event: ManifestEvent, manifest: Manifest): boolean {
   return event.blockNumber >= manifest.startBlock && event.blockNumber <= manifest.endBlock;
 }
 
-/** The latest in-window rebase — the breaking event for a reward discrepancy. */
+/** The latest in-window rebase — the last candidate for a reward discrepancy
+ * (a locator, not a proven cause; see {@link BreakingEvent}). */
 function lastRebaseInWindow(manifest: Manifest): RebaseEvent | null {
   let found: RebaseEvent | null = null;
   for (const event of manifest.events) {
@@ -160,8 +169,8 @@ function lastRebaseInWindow(manifest: Manifest): RebaseEvent | null {
   return found;
 }
 
-/** The latest in-window transfer touching the subject — breaking event for a
- * closing-shares discrepancy. */
+/** The latest in-window transfer touching the subject — the last candidate for a
+ * closing-shares discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
 function lastSubjectTransferInWindow(manifest: Manifest, subject: string): TransferEvent | null {
   let found: TransferEvent | null = null;
   for (const event of manifest.events) {

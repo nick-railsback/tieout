@@ -56,14 +56,17 @@ test("AC-5.1.a — the slice narration names the exact breaking event (txHash, b
   assert.match(reward.line, /logIndex 29/);
 });
 
-test("AC-5.1.b — the reward cause narrates as an unbooked rebase with the signed delta", () => {
+test("AC-5.1.b — the reward gap names its last in-window rebase candidate, not a proven cause (MAINT-1)", () => {
   const { report } = reconOf("slice");
   const reward = narrateReport(report).discrepancies[0]!;
 
   // delta 1000000000 wei @ 18dp = 0.000000001 stETH, rendered with an explicit sign.
   assert.match(reward.line, /\+0\.000000001 stETH/);
-  assert.match(reward.line, /reward rebase/);
-  assert.match(reward.line, /not yet booked/);
+  assert.match(reward.line, /unbooked reward/);
+  // The named event is the LAST in-window rebase — a candidate locator, not a
+  // factual attribution the aggregate delta cannot support (MAINT-1).
+  assert.match(reward.line, /last in-window rebase/);
+  assert.doesNotMatch(reward.line, /not yet booked/);
   // The delta is echoed verbatim as a canonical fact (a bigint, not reformatted).
   assert.equal(reward.delta, report.discrepancies[0]!.delta);
 });

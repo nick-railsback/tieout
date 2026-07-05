@@ -81,25 +81,32 @@ function nameEvent(event: BreakingEvent): string {
 
 /**
  * Narrate one discrepancy from its real axis, signed delta, and named event.
- * A `reward` gap is an unbooked rebase; a `closingShares` gap is a book-vs-chain
- * share-balance gap at the subject's last transfer. When `breakingEvent` is
- * `null` the delta is still named honestly — no event is fabricated.
+ * A `reward` gap is unbooked on-chain reward; a `closingShares` gap is a
+ * book-vs-chain share-balance gap. The named event is the LAST in-window
+ * candidate for the axis (a heuristic locator, not a proven cause — see
+ * {@link BreakingEvent}), so the prose points at it, never attributes causation.
+ * When `breakingEvent` is `null` the delta is still named honestly — no event is
+ * fabricated.
  */
 export function narrateDiscrepancy(discrepancy: Discrepancy): DiscrepancyNarration {
   const amount = formatSignedWei(discrepancy.delta);
   const event = discrepancy.breakingEvent;
 
+  // The named event is the LAST in-window candidate for the axis, not a proven
+  // cause: the axes are aggregate sums, so with several in-window rebases/
+  // transfers the delta cannot single out which one broke. Phrase it as a
+  // locator ("last in-window …"), never as factual attribution (MAINT-1).
   let line: string;
   if (discrepancy.axis === "reward") {
     line =
       event === null
         ? `Reward: chain shows ${amount} stETH of reward with no in-window rebase event to name.`
-        : `Reward: chain shows ${amount} stETH from a reward rebase at ${nameEvent(event)}, not yet booked.`;
+        : `Reward: chain shows ${amount} stETH of unbooked reward; last in-window rebase at ${nameEvent(event)}.`;
   } else {
     line =
       event === null
         ? `Closing shares: a ${amount} wstETH book-vs-chain balance gap with no in-window subject transfer to name.`
-        : `Closing shares: a ${amount} wstETH book-vs-chain balance gap at the subject transfer in ${nameEvent(event)}.`;
+        : `Closing shares: a ${amount} wstETH book-vs-chain balance gap; last in-window subject transfer at ${nameEvent(event)}.`;
   }
 
   return { axis: discrepancy.axis, delta: discrepancy.delta, breakingEvent: event, line };
