@@ -77,6 +77,13 @@ test("AD-9/AC-2.2.d: Ponder path and eth_getLogs path yield a byte-identical man
   const fromPonder = derive(makeInput([ponderEventToRawLog(ponderEvent)]));
   const fromVerify = derive(makeInput([viemLogToRawLog(viemLog)]));
   assert.ok(fromPonder.ok && fromVerify.ok);
+  // Assert the log actually SURVIVED classification before comparing outputs
+  // (TEST-3): `derive` silently skips any log whose (topic0, address) misses the
+  // table, so if WSTETH here ever drifts from mainnetTokenTable() both manifests
+  // go identically empty and hash-equality "proves" AC-2.2.d vacuously. Pin the
+  // non-trivial content so a dropped Transfer fails loudly, not silently.
+  assert.equal(fromPonder.value.events.length, 1, "the Transfer was dropped, not derived");
+  assert.equal(fromPonder.value.events[0]!.type, "Transfer");
   assert.equal(manifestHash(fromPonder.value), manifestHash(fromVerify.value));
   assert.deepEqual(fromPonder.value, fromVerify.value);
 });
