@@ -62,9 +62,12 @@ contract AttestationRegistry {
 
     /// @notice Emitted on the **first** (and only the first) anchoring of a
     /// `reportHash`. `submitter` is `msg.sender` — a recorded fact, **not** a
-    /// signature over the report (AD-14/AD-16). `reportHash` and `submitter` are
-    /// indexed so `apps/web` (Batch 5) can query the log by either. `timestamp` is
-    /// kept `uint64` to match the stored width — it is not widened to `uint256`.
+    /// signature over the report (AD-14/AD-16). Both fields are indexed, but only
+    /// a **`reportHash`** filter is reliable: a front-run repeat `attest` is a
+    /// state-preserving no-op that emits **no** second event, so a `submitter`
+    /// filter enumerates only who *first* anchored a hash — never the true author
+    /// of a hash someone else anchored first. `timestamp` is kept `uint64` to
+    /// match the stored width — it is not widened to `uint256`.
     /// @param reportHash The anchored `keccak256(canonicalBytes(report))` (AD-12).
     /// @param submitter The caller that first anchored the hash (a fact, not identity).
     /// @param timestamp The block timestamp at which the hash was first anchored.

@@ -157,6 +157,22 @@ contract AttestationRegistryTest is Test {
         deployer.run();
     }
 
+    // TEST-7: prove the OTHER side of the allow-list — run() succeeds on each rung
+    // of the ladder (Base mainnet, Base Sepolia, local Anvil) and returns a live
+    // registry. Without this, an inverted guard (reverting on the allowed chains)
+    // would pass the suite; this gates a real-money broadcast.
+    function test_deployScript_succeedsOnEveryAllowedChain() public {
+        uint256[3] memory chains = [uint256(8453), uint256(84_532), uint256(31_337)];
+        for (uint256 i = 0; i < chains.length; i++) {
+            DeployAttestationRegistry deployer = new DeployAttestationRegistry();
+            vm.chainId(chains[i]);
+            AttestationRegistry deployed = deployer.run();
+            assertTrue(address(deployed) != address(0), "run() must return a live registry");
+            // The freshly deployed registry is functional: an unknown hash reads empty.
+            assertFalse(deployed.isAttested(bytes32(uint256(1))), "fresh registry must be empty");
+        }
+    }
+
     // AC-3.2.a — first-write-wins holds for arbitrary reportHash (including
     // bytes32(0)) under arbitrary blocks/timestamps/submitters; a repeat at a
     // strictly-later (block, time) by a different submitter is an idempotent no-op.
