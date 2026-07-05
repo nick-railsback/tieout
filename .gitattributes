@@ -7,3 +7,16 @@ packages/recon/fixtures/golden/report.json     -text
 packages/recon/fixtures/golden/manifest.json   -text
 packages/recon/fixtures/golden/ledger.json     -text
 packages/recon/fixtures/golden/reportHash.txt  -text
+
+# The SAME byte contract is enforced beyond the golden set (REL-3): `verify`
+# byte-compares the shipped slice report (Buffer.compare), the CI determinism
+# gate runs it against fixtures/slice/report.json, and fixtures-sync.test.ts
+# byte-compares the apps/web/public copies. Protect those too, or a Windows
+# clone (core.autocrlf=true) would fail NFR-0 with a misleading "bytes differ".
+packages/recon/fixtures/slice/report.json      -text
+packages/recon/fixtures/slice/manifest.json    -text
+packages/recon/fixtures/slice/ledger.json      -text
+apps/web/public/report.golden.json             -text
+apps/web/public/report.golden.hash.txt         -text
+apps/web/public/report.slice.json              -text
+apps/web/public/report.slice.hash.txt          -text
