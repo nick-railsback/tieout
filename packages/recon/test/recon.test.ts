@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { validateLedger } from "../src/ledger.ts";
-import { type Manifest, type TransferEvent, manifestHash, validateManifest } from "../src/manifest.ts";
+import {
+  type Manifest,
+  type TransferEvent,
+  manifestHash,
+  validateManifest,
+} from "../src/manifest.ts";
 import { recon } from "../src/recon.ts";
 
 const GOLDEN = join(import.meta.dirname, "..", "fixtures", "golden");
@@ -96,7 +101,10 @@ test("reconciles both axes: shares tie out, reward breaks by the injected delta"
   assert.match(report.ledgerHash, /^0x[0-9a-f]{64}$/);
 
   // Per-lot records ordered by (acquisitionBlock, lotId) (AC-1.5.c, AD-13).
-  assert.deepEqual(report.lots.map((l) => l.lotId), ["L1", "L2"]);
+  assert.deepEqual(
+    report.lots.map((l) => l.lotId),
+    ["L1", "L2"],
+  );
 });
 
 // Health-audit Security finding (SEC-2): recon() summed Transfer.value into

@@ -115,7 +115,11 @@ export function validateLedger(input: unknown): Result<Ledger, FieldError> {
     if (!costBasisUsd.ok) return costBasisUsd;
 
     if (seen.has(lotId.value)) {
-      return fail("duplicate-lot", `${path}.lotId: duplicate lotId "${lotId.value}"`, `${path}.lotId`);
+      return fail(
+        "duplicate-lot",
+        `${path}.lotId: duplicate lotId "${lotId.value}"`,
+        `${path}.lotId`,
+      );
     }
     seen.add(lotId.value);
 

@@ -184,7 +184,11 @@ function lastRebaseInWindow(manifest: Manifest, stETH: string): RebaseEvent | nu
 
 /** The latest in-window wstETH transfer touching the subject — the last candidate
  * for a closing-shares discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
-function lastSubjectTransferInWindow(manifest: Manifest, subject: string, wstETH: string): TransferEvent | null {
+function lastSubjectTransferInWindow(
+  manifest: Manifest,
+  subject: string,
+  wstETH: string,
+): TransferEvent | null {
   let found: TransferEvent | null = null;
   for (const event of manifest.events) {
     if (
@@ -216,10 +220,10 @@ function breakingEventOf(event: TransferEvent | RebaseEvent | null): BreakingEve
  *
  * [Source: docs/ARCHITECTURE-SPINE.md#AD-1, #AD-2, #AD-13]
  */
-export function recon(manifest: Manifest, ledger: Ledger): Result<
-  { readonly report: Report; readonly reportHash: Hex },
-  ReconError
-> {
+export function recon(
+  manifest: Manifest,
+  ledger: Ledger,
+): Result<{ readonly report: Report; readonly reportHash: Hex }, ReconError> {
   // Recon-boundary precondition (AC-1.2.b, AD-3/AD-20): the ledger's window
   // must equal the manifest's pinned [startBlock, endBlock]. This is the point
   // where the manifest's pins and the ledger's window first coexist.
@@ -261,7 +265,11 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
   // --- Closing-shares axis: event-derived balance vs Σ lots.shares ---
   let onchainShares = 0n;
   for (const event of manifest.events) {
-    if (event.type !== "Transfer" || event.address.toLowerCase() !== wstETH || !inWindow(event, manifest)) {
+    if (
+      event.type !== "Transfer" ||
+      event.address.toLowerCase() !== wstETH ||
+      !inWindow(event, manifest)
+    ) {
       continue;
     }
     if (event.to === ledger.subject) onchainShares += event.value;

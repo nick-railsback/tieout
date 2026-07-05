@@ -77,7 +77,11 @@ function defaultDeps(subject: `0x${string}`): LivePositionsDeps {
       return { balanceWstEth, stEthPerToken };
     },
     watch: (handlers) =>
-      client.watchBlocks({ emitOnBegin: false, onBlock: handlers.onBlock, onError: handlers.onError }),
+      client.watchBlocks({
+        emitOnBegin: false,
+        onBlock: handlers.onBlock,
+        onError: handlers.onError,
+      }),
   };
 }
 

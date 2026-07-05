@@ -4,12 +4,12 @@ import { LOG_FILTERS } from "./filter.ts";
 import { getTokenAddress } from "@tieout/addresses";
 import { TOKEN_REBASED_EVENT } from "./events.ts";
 import { type PriceObservation, type RatePoint } from "./manifest.ts";
+import { type RateDivergence, type RateObservation, crossCheckRates } from "./crosscheck.ts";
 import {
-  type RateDivergence,
-  type RateObservation,
-  crossCheckRates,
-} from "./crosscheck.ts";
-import { DEFAULT_PRICE_MAX_STALENESS_SECS, guardPriceRound, toPriceObservation } from "./priceobs.ts";
+  DEFAULT_PRICE_MAX_STALENESS_SECS,
+  guardPriceRound,
+  toPriceObservation,
+} from "./priceobs.ts";
 import { type RebaseObservation } from "./ratecurve.ts";
 import { type RawLog } from "./rawlog.ts";
 import { type Result, err, ok } from "./result.ts";
@@ -37,7 +37,13 @@ const WSTETH_ABI = [
 ] as const;
 
 const FEED_ABI = [
-  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+  },
   {
     type: "function",
     name: "latestRoundData",
@@ -73,7 +79,9 @@ export function viemLogToRawLog(log: {
     log.blockHash === null ||
     log.transactionHash === null
   ) {
-    throw new Error("L0 fetch: unexpected pending log (null block/tx fields) over a finalized range");
+    throw new Error(
+      "L0 fetch: unexpected pending log (null block/tx fields) over a finalized range",
+    );
   }
   return {
     address: log.address.toLowerCase() as `0x${string}`,
@@ -157,7 +165,11 @@ export async function fetchRebaseAt(
   const log = logs[logs.length - 1];
   if (log === undefined) return null;
   const args = log.args as { postTotalShares: bigint; postTotalEther: bigint };
-  return { rebaseBlock: block, postTotalEther: args.postTotalEther, postTotalShares: args.postTotalShares };
+  return {
+    rebaseBlock: block,
+    postTotalEther: args.postTotalEther,
+    postTotalShares: args.postTotalShares,
+  };
 }
 
 /** Read `wstETH.stEthPerToken()` at a pinned block (archive). */
@@ -213,12 +225,20 @@ export async function crossCheckRateCurveArchive(
   const observations: RateObservation[] = [];
   for (const point of rateCurve) {
     const archiveRate1e18 = await stEthPerTokenAt(client, point.rebaseBlock);
-    observations.push({ rebaseBlock: point.rebaseBlock, eventRate1e18: point.rate1e18, archiveRate1e18 });
+    observations.push({
+      rebaseBlock: point.rebaseBlock,
+      eventRate1e18: point.rate1e18,
+      archiveRate1e18,
+    });
   }
   return crossCheckRates(observations);
 }
 
-export type PinCapture = { readonly startHash: string; readonly endHash: string; readonly endTimestamp: bigint };
+export type PinCapture = {
+  readonly startHash: string;
+  readonly endHash: string;
+  readonly endTimestamp: bigint;
+};
 
 /** Read the concrete `(blockNumber, blockHash)` at both endpoints (never
  * `latest`), plus the endBlock timestamp for the AD-18 resolution. */

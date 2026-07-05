@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { canonicalize } from "../src/canonical.ts";
 import { type Ledger, validateLedger } from "../src/ledger.ts";
-import { type Manifest, canonicalManifest, manifestHash, validateManifest } from "../src/manifest.ts";
+import {
+  type Manifest,
+  canonicalManifest,
+  manifestHash,
+  validateManifest,
+} from "../src/manifest.ts";
 import { type Report, recon } from "../src/recon.ts";
 
 // T4 / AC-4.1, AC-4.2 — USD valuation + unrealized P/L (AD-18 consumption, AD-2).

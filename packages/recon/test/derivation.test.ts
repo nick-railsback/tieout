@@ -68,7 +68,14 @@ function rebaseLog(o: {
       { type: "uint256" }, // postTotalEther
       { type: "uint256" }, // sharesMintedAsFees
     ],
-    [86400n, o.postTotalShares - 1n, o.postTotalEther - 1n, o.postTotalShares, o.postTotalEther, 0n],
+    [
+      86400n,
+      o.postTotalShares - 1n,
+      o.postTotalEther - 1n,
+      o.postTotalShares,
+      o.postTotalEther,
+      0n,
+    ],
   );
   return {
     address: o.address ?? STETH,
@@ -94,7 +101,13 @@ function makeInput(rawLogs: RawLog[], over: Partial<DerivationInput> = {}): Deri
       { chainId: 1n, symbol: "stETH", address: STETH },
     ],
     engineVersion: "0.1.0",
-    priceObservation: { feedAddress: FEED, roundId: 1n, answer: 1n, decimals: 8n, observedBlock: 200n },
+    priceObservation: {
+      feedAddress: FEED,
+      roundId: 1n,
+      answer: 1n,
+      decimals: 8n,
+      observedBlock: 200n,
+    },
     rateCurve: [],
     ...over,
   };
@@ -103,7 +116,13 @@ function makeInput(rawLogs: RawLog[], over: Partial<DerivationInput> = {}): Deri
 test("decodes + totally orders events by (blockNumber, txIndex, logIndex)", () => {
   const logs = [
     transferLog({ value: 5n, blockNumber: 150n, txIndex: 2n, logIndex: 0n }),
-    rebaseLog({ postTotalShares: 100n, postTotalEther: 123n, blockNumber: 120n, txIndex: 0n, logIndex: 4n }),
+    rebaseLog({
+      postTotalShares: 100n,
+      postTotalEther: 123n,
+      blockNumber: 120n,
+      txIndex: 0n,
+      logIndex: 4n,
+    }),
     transferLog({ value: 9n, blockNumber: 150n, txIndex: 1n, logIndex: 7n }),
   ];
   const result = derive(makeInput(logs));
@@ -170,7 +189,13 @@ test("filters logs whose emitting address is not the expected token (D4 defense)
 test("AD-9: shuffled raw-log order yields a BYTE-IDENTICAL manifest (both adapters)", () => {
   const logs = [
     transferLog({ value: 5n, blockNumber: 150n, txIndex: 2n, logIndex: 0n }),
-    rebaseLog({ postTotalShares: 100n, postTotalEther: 123n, blockNumber: 120n, txIndex: 0n, logIndex: 4n }),
+    rebaseLog({
+      postTotalShares: 100n,
+      postTotalEther: 123n,
+      blockNumber: 120n,
+      txIndex: 0n,
+      logIndex: 4n,
+    }),
     transferLog({ value: 9n, blockNumber: 150n, txIndex: 1n, logIndex: 7n }),
     transferLog({ value: 1n, blockNumber: 130n, txIndex: 5n, logIndex: 2n }),
   ];

@@ -195,7 +195,11 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
   async function paintAnchor(myGeneration: number, reportHash: Hex): Promise<void> {
     setText("anchor-chain", String(ANCHOR_CHAIN_ID));
     setBadge("anchor-status", "reading…", "neutral");
-    const state = await readAnchorFn({ chainId: ANCHOR_CHAIN_ID, reportHash, rpcUrl: ANCHOR_RPC_URL });
+    const state = await readAnchorFn({
+      chainId: ANCHOR_CHAIN_ID,
+      reportHash,
+      rpcUrl: ANCHOR_RPC_URL,
+    });
     if (myGeneration !== generation) return;
     const view = anchorViewModel(state);
     setBadge("anchor-status", view.label, view.tone);

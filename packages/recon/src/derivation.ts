@@ -77,10 +77,7 @@ function findTokenAddress(table: readonly ManifestAddress[], symbol: string): st
  * shared by `derive` (here) and `reconstruct`'s in-window rebase collection, so
  * neither site can drift into an untyped throw on hostile input (AD-9).
  */
-export function decodeArgs(
-  event: AbiEvent,
-  log: RawLog,
-): Result<Record<string, unknown>, string> {
+export function decodeArgs(event: AbiEvent, log: RawLog): Result<Record<string, unknown>, string> {
   try {
     const decoded = decodeEventLog({
       abi: [event],
@@ -133,7 +130,12 @@ export function derive(input: DerivationInput): Result<Manifest, DerivationError
     if (topic0 === TRANSFER_TOPIC0 && address === wstETH) {
       const decoded = decodeArgs(TRANSFER_EVENT, log);
       if (!decoded.ok) {
-        return err({ kind: "decode-failed", index: i, eventType: "Transfer", detail: decoded.error });
+        return err({
+          kind: "decode-failed",
+          index: i,
+          eventType: "Transfer",
+          detail: decoded.error,
+        });
       }
       const args = decoded.value;
       obj = {
@@ -146,7 +148,12 @@ export function derive(input: DerivationInput): Result<Manifest, DerivationError
     } else if (topic0 === TOKEN_REBASED_TOPIC0 && address === stETH) {
       const decoded = decodeArgs(TOKEN_REBASED_EVENT, log);
       if (!decoded.ok) {
-        return err({ kind: "decode-failed", index: i, eventType: "TokenRebased", detail: decoded.error });
+        return err({
+          kind: "decode-failed",
+          index: i,
+          eventType: "TokenRebased",
+          detail: decoded.error,
+        });
       }
       const args = decoded.value;
       obj = {

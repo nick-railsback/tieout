@@ -19,8 +19,7 @@ import { canonicalReport, recon } from "../recon.ts";
  * live here in the shell (AD-1).
  */
 type ReadResult =
-  | { readonly ok: true; readonly value: unknown }
-  | { readonly ok: false; readonly message: string };
+  { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly message: string };
 
 /** Read + parse a JSON file, returning a typed result instead of throwing — so
  * I/O and parse errors follow the same clean error contract as validation

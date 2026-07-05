@@ -6,7 +6,10 @@ import { buildRateCurve, rateFromRebase, type RebaseObservation } from "../src/r
 
 test("rateFromRebase reproduces the LIVE Note-1 gate value (real mainnet rebase)", () => {
   // Live-verified at rebaseBlock 25444795: stEthPerToken() == this exact value.
-  assert.equal(rateFromRebase(9139519135144088574988460n, 7379813248156468402170827n), 1238448566083594004n);
+  assert.equal(
+    rateFromRebase(9139519135144088574988460n, 7379813248156468402170827n),
+    1238448566083594004n,
+  );
 });
 
 test("multiply-before-divide with one truncating division (AD-2)", () => {

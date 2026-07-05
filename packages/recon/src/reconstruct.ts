@@ -11,7 +11,12 @@ import {
   type PinCapture,
   resolvePriceObservation,
 } from "./l0fetch.ts";
-import { type Manifest, type ManifestAddress, type PriceObservation, type RatePoint } from "./manifest.ts";
+import {
+  type Manifest,
+  type ManifestAddress,
+  type PriceObservation,
+  type RatePoint,
+} from "./manifest.ts";
 import { buildRateCurve, type RebaseObservation } from "./ratecurve.ts";
 import { decodeArgs, derive } from "./derivation.ts";
 import { ENGINE_VERSION } from "./version.ts";
@@ -95,7 +100,12 @@ export async function reconstructManifest(
   // retries must surface as a typed `rpc` error — not a raw stack trace out of
   // the trustless verifier. (resolvePriceObservation already wraps its own.)
   try {
-    const rawLogs = await fetchRawLogs(client, params.startBlock, params.endBlock, params.blocksPerChunk);
+    const rawLogs = await fetchRawLogs(
+      client,
+      params.startBlock,
+      params.endBlock,
+      params.blocksPerChunk,
+    );
 
     // In-window rebase observations (decoded from the raw logs we already fetched).
     const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(1, "stETH"));
@@ -113,7 +123,8 @@ export async function reconstructManifest(
     // AD-6 cross-check on the canonical path: each curve rate must EXACTLY equal
     // the archive stEthPerToken() at its rebase block (FR7 — never a tolerance).
     const crossChecked = await crossCheckRateCurveArchive(client, curve.value);
-    if (!crossChecked.ok) return err({ kind: "rate-crosscheck", detail: JSON.stringify(crossChecked.error) });
+    if (!crossChecked.ok)
+      return err({ kind: "rate-crosscheck", detail: JSON.stringify(crossChecked.error) });
 
     const pins = await capturePins(client, params.startBlock, params.endBlock);
     const price = await resolvePriceObservation(
@@ -137,7 +148,12 @@ export async function reconstructManifest(
     });
     if (!manifest.ok) return err({ kind: "derive", detail: JSON.stringify(manifest.error) });
 
-    return ok({ manifest: manifest.value, pins, rateCurve: curve.value, priceObservation: price.value });
+    return ok({
+      manifest: manifest.value,
+      pins,
+      rateCurve: curve.value,
+      priceObservation: price.value,
+    });
   } catch (caught) {
     return err({ kind: "rpc", detail: (caught as Error).message });
   }

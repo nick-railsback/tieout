@@ -15,7 +15,8 @@ const PUBLIC = join(import.meta.dirname, "..", "public");
 const FIXTURES = join(import.meta.dirname, "..", "..", "..", "packages", "recon", "fixtures");
 
 const read = (path: string) => readFileSync(path, "utf8");
-const reportHashOf = (json: string) => canonicalHash(canonicalReport(parseReportJson(JSON.parse(json))));
+const reportHashOf = (json: string) =>
+  canonicalHash(canonicalReport(parseReportJson(JSON.parse(json))));
 
 for (const [key, dir] of [
   ["golden", "golden"],
@@ -24,13 +25,21 @@ for (const [key, dir] of [
   test(`web report.${key}.json is byte-identical to the recon fixture`, () => {
     const web = read(join(PUBLIC, `report.${key}.json`));
     const recon = read(join(FIXTURES, dir, "report.json"));
-    assert.equal(web, recon, `apps/web/public/report.${key}.json is stale vs packages/recon/fixtures/${dir}/report.json`);
+    assert.equal(
+      web,
+      recon,
+      `apps/web/public/report.${key}.json is stale vs packages/recon/fixtures/${dir}/report.json`,
+    );
   });
 
   test(`web report.${key}.hash.txt matches the report's recomputed reportHash`, () => {
     const web = read(join(PUBLIC, `report.${key}.json`));
     const committedHash = read(join(PUBLIC, `report.${key}.hash.txt`)).trim();
-    assert.equal(committedHash, reportHashOf(web), `report.${key}.hash.txt does not match its report`);
+    assert.equal(
+      committedHash,
+      reportHashOf(web),
+      `report.${key}.hash.txt does not match its report`,
+    );
   });
 }
 

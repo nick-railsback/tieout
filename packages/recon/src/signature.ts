@@ -74,7 +74,10 @@ export type SignatureEnvelope = {
  * have a bin, because verification is the adversarial, run-anywhere step; signing
  * is not. This asymmetry is a decision, not a missing feature (DEBT-1).
  */
-export async function signReport(privateKey: Hex, binding: ReportBinding): Promise<SignatureEnvelope> {
+export async function signReport(
+  privateKey: Hex,
+  binding: ReportBinding,
+): Promise<SignatureEnvelope> {
   const account = privateKeyToAccount(privateKey);
   const signature = await account.signTypedData({
     domain: tieoutDomain(binding.chainId),
@@ -104,8 +107,7 @@ export function bindingCovers(binding: ReportBinding, expected: ReportBinding): 
 }
 
 export type SignatureCheck =
-  | { readonly ok: true; readonly signer: Address }
-  | { readonly ok: false; readonly reason: string };
+  { readonly ok: true; readonly signer: Address } | { readonly ok: false; readonly reason: string };
 
 /**
  * Verify a detached signature envelope: enforce low-s (EIP-2) FIRST, then

@@ -11,9 +11,7 @@
 export function requirePonderRpcUrl(env: NodeJS.ProcessEnv = process.env): string {
   const url = env.PONDER_RPC_URL_1;
   if (!url) {
-    throw new Error(
-      "PONDER_RPC_URL_1 required (mainnet archive endpoint — see .env.example)",
-    );
+    throw new Error("PONDER_RPC_URL_1 required (mainnet archive endpoint — see .env.example)");
   }
   return url;
 }

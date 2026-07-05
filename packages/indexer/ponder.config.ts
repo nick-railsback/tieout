@@ -1,7 +1,12 @@
 import { createConfig } from "ponder";
 import { http } from "viem";
 import { getTokenAddress } from "@tieout/addresses";
-import { SLICE_END_BLOCK, SLICE_START_BLOCK, TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "@tieout/recon";
+import {
+  SLICE_END_BLOCK,
+  SLICE_START_BLOCK,
+  TOKEN_REBASED_EVENT,
+  TRANSFER_EVENT,
+} from "@tieout/recon";
 import { requirePonderRpcUrl } from "./src/env.ts";
 
 /**

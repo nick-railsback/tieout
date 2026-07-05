@@ -28,8 +28,16 @@ test("fails on a divergence of even ONE wei — never a silent tolerance (FR7)",
 
 test("crossCheckRates confirms all rates when every observation agrees", () => {
   const result = crossCheckRates([
-    { rebaseBlock: 90n, eventRate1e18: 2000000000000000000n, archiveRate1e18: 2000000000000000000n },
-    { rebaseBlock: 150n, eventRate1e18: 1500000000000000000n, archiveRate1e18: 1500000000000000000n },
+    {
+      rebaseBlock: 90n,
+      eventRate1e18: 2000000000000000000n,
+      archiveRate1e18: 2000000000000000000n,
+    },
+    {
+      rebaseBlock: 150n,
+      eventRate1e18: 1500000000000000000n,
+      archiveRate1e18: 1500000000000000000n,
+    },
   ]);
   assert.ok(result.ok);
   assert.deepEqual(result.value, [2000000000000000000n, 1500000000000000000n]);

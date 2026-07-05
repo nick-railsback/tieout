@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { keccak256, toBytes } from "viem";
-import {
-  canonicalBytes,
-  canonicalHash,
-  canonicalize,
-  compareCodeUnits,
-} from "../src/canonical.ts";
+import { canonicalBytes, canonicalHash, canonicalize, compareCodeUnits } from "../src/canonical.ts";
 
 // T3 / AC-1.3 — the single canonicalizer + keccak binding module.
 
@@ -36,10 +31,7 @@ test("compareCodeUnits orders by UTF-16 code unit, with a length tiebreak", () =
   // And it is exactly the order the canonicalizer emits for object keys: 😀
   // sorts before ￿, and JSON.stringify leaves both literal (only lone
   // surrogates are escaped), so the emitted keys are the raw characters.
-  assert.equal(
-    canonicalize({ "￿": 1n, "\u{1f600}": 2n }),
-    '{"\u{1f600}":"2","￿":"1"}',
-  );
+  assert.equal(canonicalize({ "￿": 1n, "\u{1f600}": 2n }), '{"\u{1f600}":"2","￿":"1"}');
 });
 
 test("JCS sorts object keys by UTF-16 code unit; arrays keep their order", () => {
@@ -80,11 +72,11 @@ test("object keys are NFC-normalized BEFORE ordering; NFC-colliding keys are rej
   // U+212B (ANGSTROM SIGN) and U+00C5 both NFC-normalize to U+00C5 — emitting
   // both would produce a duplicate object key, so reject it loudly.
   assert.throws(
-    () => canonicalize({ "Å": 1n, "Å": 2n }),
+    () => canonicalize({ Å: 1n, Å: 2n }),
     /duplicate object key .* after NFC normalization/,
   );
   // An NFD key is normalized to its NFC form on emit (é = U+00E9).
-  assert.equal(canonicalize({ "é": 1n }), '{"é":"1"}');
+  assert.equal(canonicalize({ é: 1n }), '{"é":"1"}');
 });
 
 test("canonicalBytes is a pure UTF-8 encode — viem's 0x-hex branch never fires (AC-1.3.c)", () => {

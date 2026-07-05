@@ -12,7 +12,16 @@ import { ATTESTATION_REGISTRY_ABI_SIGNATURES } from "../src/abi.ts";
 // (a changed param or return type) fails the Node suite loudly.
 
 const SOURCE = readFileSync(
-  join(import.meta.dirname, "..", "..", "..", "packages", "contracts", "src", "AttestationRegistry.sol"),
+  join(
+    import.meta.dirname,
+    "..",
+    "..",
+    "..",
+    "packages",
+    "contracts",
+    "src",
+    "AttestationRegistry.sol",
+  ),
   "utf8",
 );
 

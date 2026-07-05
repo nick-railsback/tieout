@@ -25,7 +25,9 @@ import { ADDRESS_TABLE, ADDRESS_KINDS, type AddressEntry } from "./index.ts";
  */
 export type AddressCheckError = { readonly entry: AddressEntry; readonly reason: string };
 
-export function checkAddressTable(table: readonly AddressEntry[] = ADDRESS_TABLE): AddressCheckError[] {
+export function checkAddressTable(
+  table: readonly AddressEntry[] = ADDRESS_TABLE,
+): AddressCheckError[] {
   const errors: AddressCheckError[] = [];
 
   for (const entry of table) {
@@ -52,7 +54,10 @@ export function checkAddressTable(table: readonly AddressEntry[] = ADDRESS_TABLE
     try {
       canonical = getAddress(entry.checksummed); // never pass the EIP-1191 chainId
     } catch (caught) {
-      errors.push({ entry, reason: `checksummed is not a well-formed address: ${(caught as Error).message}` });
+      errors.push({
+        entry,
+        reason: `checksummed is not a well-formed address: ${(caught as Error).message}`,
+      });
       continue;
     }
     if (entry.checksummed !== canonical) {
@@ -88,7 +93,10 @@ export function assertAddressTable(): void {
   const errors = checkAddressTable();
   if (errors.length > 0) {
     const detail = errors
-      .map((error) => `  - ${error.entry.symbol}@${error.entry.chainId} ${error.entry.address}: ${error.reason}`)
+      .map(
+        (error) =>
+          `  - ${error.entry.symbol}@${error.entry.chainId} ${error.entry.address}: ${error.reason}`,
+      )
       .join("\n");
     throw new Error(`AD-5 address table check failed:\n${detail}`);
   }

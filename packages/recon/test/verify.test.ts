@@ -56,7 +56,11 @@ function reportWithPins(over: Record<string, string>): string {
 
 /** Assert a clean single-line typed failure — the L3 guarantee — not a crash. */
 function assertCleanFailure(result: SpawnSyncReturns<string>): void {
-  assert.equal(result.status, 1, `expected exit 1, got ${result.status}\nstderr:\n${result.stderr}`);
+  assert.equal(
+    result.status,
+    1,
+    `expected exit 1, got ${result.status}\nstderr:\n${result.stderr}`,
+  );
   assert.ok(
     result.stderr.trim().startsWith("verify:"),
     `expected a "verify: …" line, got:\n${result.stderr}`,

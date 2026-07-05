@@ -105,7 +105,8 @@ test("AC-5.1.a — narration is deterministic: the same report yields byte-ident
   const a = narrateReport(report);
   const b = narrateReport(report);
   // Structural + string equality across calls (bigint-safe stringify).
-  const stamp = (r: Report) => JSON.stringify(narrateReport(r), (_k, v) => (typeof v === "bigint" ? `${v}` : v));
+  const stamp = (r: Report) =>
+    JSON.stringify(narrateReport(r), (_k, v) => (typeof v === "bigint" ? `${v}` : v));
   assert.equal(stamp(report), stamp(report));
   assert.deepEqual(a.lines, b.lines);
 });

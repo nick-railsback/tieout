@@ -12,6 +12,11 @@
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
-    "contracts:build": "forge build --root packages/contracts"
+    "contracts:build": "forge build --root packages/contracts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.9.4"
   }
 }

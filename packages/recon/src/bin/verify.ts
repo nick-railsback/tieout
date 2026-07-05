@@ -92,7 +92,9 @@ async function main(): Promise<number> {
     typeof pinsRaw["startHash"] !== "string" ||
     typeof pinsRaw["endHash"] !== "string"
   ) {
-    return fail("malformed report.json (missing/invalid engineVersion, pins, manifestHash, ledgerHash, or subject)");
+    return fail(
+      "malformed report.json (missing/invalid engineVersion, pins, manifestHash, ledgerHash, or subject)",
+    );
   }
   const pins = pinsRaw as Record<string, string>;
 
@@ -110,7 +112,9 @@ async function main(): Promise<number> {
 
   // 1) engineVersion FIRST — a mismatch is version skew, not a hash failure (AD-8).
   if (report["engineVersion"] !== ENGINE_VERSION) {
-    return fail(`version skew: report engineVersion "${String(report["engineVersion"])}" != verifier ${ENGINE_VERSION}`);
+    return fail(
+      `version skew: report engineVersion "${String(report["engineVersion"])}" != verifier ${ENGINE_VERSION}`,
+    );
   }
 
   // 2) L0 re-fetch + re-derive over the report's pinned range.
@@ -125,7 +129,9 @@ async function main(): Promise<number> {
 
   // 3) Confirm manifestHash and the both-endpoint blockhash pins (AD-3/AD-10).
   if (manifestHash(manifest) !== report["manifestHash"]) {
-    return fail(`manifestHash mismatch: re-derived ${manifestHash(manifest)} != report ${String(report["manifestHash"])}`);
+    return fail(
+      `manifestHash mismatch: re-derived ${manifestHash(manifest)} != report ${String(report["manifestHash"])}`,
+    );
   }
   if (manifest.startHash !== pins["startHash"] || manifest.endHash !== pins["endHash"]) {
     return fail("pin blockhash mismatch — the report's pins disagree with the honest RPC (AD-10)");
@@ -141,7 +147,9 @@ async function main(): Promise<number> {
   const ledger = validateLedger(ledgerRaw);
   if (!ledger.ok) return fail(`ledger invalid: [${ledger.error.code}] ${ledger.error.message}`);
   if (ledgerHash(ledger.value) !== report["ledgerHash"]) {
-    return fail(`ledgerHash mismatch: ${ledgerHash(ledger.value)} != report ${String(report["ledgerHash"])}`);
+    return fail(
+      `ledgerHash mismatch: ${ledgerHash(ledger.value)} != report ${String(report["ledgerHash"])}`,
+    );
   }
 
   // 5) recon → confirm reportHash by BYTE-IDENTITY with the shipped report.json.

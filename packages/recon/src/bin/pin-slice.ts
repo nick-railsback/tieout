@@ -90,7 +90,10 @@ async function main(): Promise<number> {
   mkdirSync(outDir, { recursive: true });
   writeFileSync(new URL("manifest.json", outDir), canonicalBytes(canonicalManifest(manifest)));
   writeFileSync(new URL("ledger.json", outDir), canonicalBytes(canonicalLedger(ledger)));
-  writeFileSync(new URL("report.json", outDir), canonicalBytes(canonicalReport(result.value.report)));
+  writeFileSync(
+    new URL("report.json", outDir),
+    canonicalBytes(canonicalReport(result.value.report)),
+  );
 
   process.stdout.write(
     [

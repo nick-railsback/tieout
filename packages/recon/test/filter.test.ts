@@ -24,7 +24,10 @@ test("filter addresses come from the AD-5 table (lowercase), not hardcoded", () 
 });
 
 test("each filter's topic0 matches its event signature", () => {
-  assert.equal(LOG_FILTERS[0]!.topic0, encodeEventTopics({ abi: [TRANSFER_EVENT], eventName: "Transfer" })[0]);
+  assert.equal(
+    LOG_FILTERS[0]!.topic0,
+    encodeEventTopics({ abi: [TRANSFER_EVENT], eventName: "Transfer" })[0],
+  );
   assert.equal(
     LOG_FILTERS[1]!.topic0,
     encodeEventTopics({ abi: [TOKEN_REBASED_EVENT], eventName: "TokenRebased" })[0],

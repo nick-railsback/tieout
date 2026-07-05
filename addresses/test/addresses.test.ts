@@ -37,9 +37,15 @@ test("SEC-1: a mistyped nibble in an entry's checksummed form is rejected by the
   const good = ADDRESS_TABLE[0]!;
   // Corrupt exactly one hex nibble of the checksummed form (F -> A at index 9).
   // Still 20 well-formed bytes, but no longer a valid EIP-55 checksum.
-  const corrupted = (good.checksummed.slice(0, 9) + "A" + good.checksummed.slice(10)) as `0x${string}`;
+  const corrupted = (good.checksummed.slice(0, 9) +
+    "A" +
+    good.checksummed.slice(10)) as `0x${string}`;
   assert.notEqual(corrupted, good.checksummed, "test setup: corruption must change the string");
-  const badEntry: AddressEntry = { ...good, checksummed: corrupted, address: corrupted.toLowerCase() as `0x${string}` };
+  const badEntry: AddressEntry = {
+    ...good,
+    checksummed: corrupted,
+    address: corrupted.toLowerCase() as `0x${string}`,
+  };
   const errors = checkAddressTable([badEntry]);
   assert.ok(
     errors.length > 0,
@@ -50,10 +56,14 @@ test("SEC-1: a mistyped nibble in an entry's checksummed form is rejected by the
 test("SEC-1: an address that disagrees with its checksummed sibling is rejected", () => {
   const good = ADDRESS_TABLE[0]!;
   // A wrong-but-well-formed lowercase address that no longer matches checksummed.
-  const wrongAddress = (good.address.slice(0, 41) + (good.address[41] === "0" ? "1" : "0")) as `0x${string}`;
+  const wrongAddress = (good.address.slice(0, 41) +
+    (good.address[41] === "0" ? "1" : "0")) as `0x${string}`;
   const badEntry: AddressEntry = { ...good, address: wrongAddress };
   const errors = checkAddressTable([badEntry]);
-  assert.ok(errors.length > 0, "guard accepted an address that disagrees with its checksummed form");
+  assert.ok(
+    errors.length > 0,
+    "guard accepted an address that disagrees with its checksummed form",
+  );
 });
 
 test("stored addresses are lowercase, 0x-prefixed, fixed-width (AC-1.1.b)", () => {
@@ -128,11 +138,16 @@ test("Multicall3 is present as a utility entry on mainnet, lowercase-stored (AC-
 
 test("getUtilityAddress resolves Multicall3 by kind and throws for the unknown (AC-5.2.a)", () => {
   assert.equal(getUtilityAddress(1, "Multicall3"), "0xca11bde05977b3631167028862be2a173976ca11");
-  assert.throws(() => getUtilityAddress(999, "Multicall3"), /no utility for Multicall3 on chainId 999/);
+  assert.throws(
+    () => getUtilityAddress(999, "Multicall3"),
+    /no utility for Multicall3 on chainId 999/,
+  );
 });
 
 test("the AttestationRegistry entry is table-driven, never inlined (AC-5.2.a, AD-5)", () => {
-  const reg = ADDRESS_TABLE.find((e) => e.kind === "registry" && e.symbol === "AttestationRegistry");
+  const reg = ADDRESS_TABLE.find(
+    (e) => e.kind === "registry" && e.symbol === "AttestationRegistry",
+  );
   assert.ok(reg, "AttestationRegistry missing from the AD-5 table");
   // Only a REAL deploy is recorded. Batch 3's maintainer-gated ladder has run
   // only on local Anvil (31337) so far; Base (8453) is intentionally ABSENT

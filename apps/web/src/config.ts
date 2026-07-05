@@ -55,8 +55,16 @@ export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
  * tie-out, not a hand-built reconciled report. Each ships its real `reportHash`
  * as data so the web never re-hashes (AD-13). */
 export const REPORTS = {
-  golden: { label: "Golden — reward break", json: "/report.golden.json", hash: "/report.golden.hash.txt" },
-  slice: { label: "Slice — injected discrepancy", json: "/report.slice.json", hash: "/report.slice.hash.txt" },
+  golden: {
+    label: "Golden — reward break",
+    json: "/report.golden.json",
+    hash: "/report.golden.hash.txt",
+  },
+  slice: {
+    label: "Slice — injected discrepancy",
+    json: "/report.slice.json",
+    hash: "/report.slice.hash.txt",
+  },
 } as const;
 
 export type ReportKey = keyof typeof REPORTS;

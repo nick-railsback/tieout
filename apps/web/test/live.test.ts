@@ -85,7 +85,10 @@ test("socket errors escalate to a terminal 'disconnected' at the reconnect budge
     h.fireSocketError(new Error("ws drop"));
   }
   assert.equal(h.statuses.at(-1), "disconnected", "must go terminal at the reconnect budget");
-  assert.ok(h.errors.length >= WS_RECONNECT_ATTEMPTS, "each socket error is surfaced, not swallowed");
+  assert.ok(
+    h.errors.length >= WS_RECONNECT_ATTEMPTS,
+    "each socket error is surfaced, not swallowed",
+  );
   // A successful read resets the socket-error count (mirrors the read path).
   h.fireBlock();
   await tick();

@@ -17,8 +17,7 @@ import {
 // logic against the real committed report assets the surface actually serves.
 
 const PUBLIC = join(import.meta.dirname, "..", "public");
-const loadReport = (name: string): unknown =>
-  JSON.parse(readFileSync(join(PUBLIC, name), "utf8"));
+const loadReport = (name: string): unknown => JSON.parse(readFileSync(join(PUBLIC, name), "utf8"));
 
 test("AC-5.2.b — the honesty boundary is present and does not overclaim", () => {
   assert.match(HONESTY_BOUNDARY, /derivation was reproduced/i);

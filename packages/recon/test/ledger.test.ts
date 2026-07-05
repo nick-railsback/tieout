@@ -13,8 +13,18 @@ function validLedger(): Record<string, unknown> {
     asset: "wstETH",
     window: { startBlock: "21000000", endBlock: "21100000" },
     lots: [
-      { lotId: "L1", acquisitionBlock: "21010000", shares: "100000000000000000000", costBasisUsd: "250000000000" },
-      { lotId: "L2", acquisitionBlock: "21060000", shares: "50000000000000000000", costBasisUsd: "130000000000" },
+      {
+        lotId: "L1",
+        acquisitionBlock: "21010000",
+        shares: "100000000000000000000",
+        costBasisUsd: "250000000000",
+      },
+      {
+        lotId: "L2",
+        acquisitionBlock: "21060000",
+        shares: "50000000000000000000",
+        costBasisUsd: "130000000000",
+      },
     ],
     bookedReward: "1000000000000000000",
   };
@@ -99,8 +109,18 @@ test("ledgerHash is stable and independent of input key order (AC-1.2.c)", () =>
   const shuffled = {
     bookedReward: "1000000000000000000",
     lots: [
-      { costBasisUsd: "250000000000", shares: "100000000000000000000", acquisitionBlock: "21010000", lotId: "L1" },
-      { shares: "50000000000000000000", lotId: "L2", costBasisUsd: "130000000000", acquisitionBlock: "21060000" },
+      {
+        costBasisUsd: "250000000000",
+        shares: "100000000000000000000",
+        acquisitionBlock: "21010000",
+        lotId: "L1",
+      },
+      {
+        shares: "50000000000000000000",
+        lotId: "L2",
+        costBasisUsd: "130000000000",
+        acquisitionBlock: "21060000",
+      },
     ],
     window: { endBlock: "21100000", startBlock: "21000000" },
     asset: "wstETH",

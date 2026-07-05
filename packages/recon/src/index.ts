@@ -94,11 +94,7 @@ export {
   mainnetTokenTable,
   reconstructManifest,
 } from "./reconstruct.ts";
-export {
-  type DerivationInput,
-  type DerivationError,
-  derive,
-} from "./derivation.ts";
+export { type DerivationInput, type DerivationError, derive } from "./derivation.ts";
 export {
   type ReportBinding,
   type SignatureEnvelope,

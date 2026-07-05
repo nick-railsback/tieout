@@ -58,7 +58,7 @@ class FakeDom implements ShellDom {
   }
   querySelector(selector: string): FakeEl | null {
     const match = selector.match(/data-report="(\w+)"/);
-    return match ? this.buttons.find((b) => b.dataset["report"] === match[1]) ?? null : null;
+    return match ? (this.buttons.find((b) => b.dataset["report"] === match[1]) ?? null) : null;
   }
   querySelectorAll(): Iterable<FakeEl> {
     return this.buttons;
@@ -113,7 +113,11 @@ test("UX-1/UX-2: a failed toggle clears the previous report's hash and live badg
 
   assert.equal(dom.text("report-status"), "load failed");
   // UX-1: no stale hash / axes / USD under the "load failed" badge.
-  assert.equal(dom.text("report-hash"), "—", "stale report hash left under load-failed badge (UX-1)");
+  assert.equal(
+    dom.text("report-hash"),
+    "—",
+    "stale report hash left under load-failed badge (UX-1)",
+  );
   assert.equal(dom.text("report-current"), "—");
   assert.equal(dom.text("report-cost"), "—");
   assert.equal(dom.text("report-pnl"), "—");
@@ -155,6 +159,10 @@ test("UX-2: an initial load failure clears the hard-coded 'connecting…' badge"
   assert.equal(dom.text("report-status"), "load failed");
   assert.equal(dom.text("report-hash"), "—");
   // The live panel must not sit at "connecting…" forever when the report fetch dies.
-  assert.equal(dom.text("live-status"), "—", "live badge stuck at connecting… after failure (UX-2)");
+  assert.equal(
+    dom.text("live-status"),
+    "—",
+    "live badge stuck at connecting… after failure (UX-2)",
+  );
   assert.equal(dom.cls("live-status"), "badge neutral");
 });
