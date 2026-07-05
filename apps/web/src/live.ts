@@ -96,13 +96,24 @@ export function startLivePositions(
   // forever with errors visible only in the console.
   let consecutiveReadErrors = 0;
   let consecutiveSocketErrors = 0;
+  let refetching = false;
 
   async function refetch(): Promise<void> {
-    const { balanceWstEth, stEthPerToken } = await deps.read();
-    consecutiveReadErrors = 0;
-    consecutiveSocketErrors = 0;
-    options.onUpdate({ subject: options.subject, balanceWstEth, stEthPerToken });
-    options.onStatus("live");
+    // Coalesce overlapping reads: each new head fires an independent refetch and
+    // the multicall has no blockNumber pin, so a slow older read could resolve
+    // AFTER a newer one and paint a stale balance/rate. Skip while one is in
+    // flight; the next block re-reads chain head anyway (REL-5).
+    if (refetching) return;
+    refetching = true;
+    try {
+      const { balanceWstEth, stEthPerToken } = await deps.read();
+      consecutiveReadErrors = 0;
+      consecutiveSocketErrors = 0;
+      options.onUpdate({ subject: options.subject, balanceWstEth, stEthPerToken });
+      options.onStatus("live");
+    } finally {
+      refetching = false;
+    }
   }
 
   function onReadError(error: unknown): void {
