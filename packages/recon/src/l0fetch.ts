@@ -87,29 +87,57 @@ export function viemLogToRawLog(log: {
   };
 }
 
+/**
+ * Max `eth_getLogs` requests in flight at once. Strictly sequential fetching is
+ * impractical at the stated 30-day target (~216k blocks / 9-block chunks × 2
+ * filters ≈ 48k calls, hours even at 1 RTT each); a small pool overlaps the
+ * round-trips (and the free-tier 429 backoff) for an ~8× speedup on a paid
+ * endpoint. Determinism is chunk-INDEPENDENT (`chunks.ts`) and `derive` totally
+ * orders + dedups, so completion order cannot move the manifest hash (PERF-1).
+ */
+export const FETCH_CONCURRENCY = 8;
+
+/** Run `fn` over `items` with at most `limit` in flight; results keep input
+ * order. A tiny worker pool — no dependency, no unbounded fan-out. */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    for (let i = next++; i < items.length; i = next++) {
+      results[i] = await fn(items[i]!);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return results;
+}
+
 /** Fetch every relevant raw log over `[startBlock, endBlock]` via the shared
- * filter, chunked deterministically. Order is irrelevant — `derive` totally
- * orders + dedups. */
+ * filter, chunked deterministically and fetched with bounded concurrency. Order
+ * is irrelevant — `derive` totally orders + dedups. */
 export async function fetchRawLogs(
   client: PublicClient,
   startBlock: bigint,
   endBlock: bigint,
   blocksPerChunk: bigint,
 ): Promise<RawLog[]> {
-  const raw: RawLog[] = [];
-  for (const { fromBlock, toBlock } of chunkRange(startBlock, endBlock, blocksPerChunk)) {
-    for (const filter of LOG_FILTERS) {
-      const logs = await client.getLogs({
-        address: filter.address,
-        event: filter.event,
-        strict: true,
-        fromBlock,
-        toBlock,
-      });
-      for (const log of logs) raw.push(viemLogToRawLog(log));
-    }
-  }
-  return raw;
+  const tasks = chunkRange(startBlock, endBlock, blocksPerChunk).flatMap((chunk) =>
+    LOG_FILTERS.map((filter) => ({ chunk, filter })),
+  );
+  const perTask = await mapWithConcurrency(tasks, FETCH_CONCURRENCY, async ({ chunk, filter }) => {
+    const logs = await client.getLogs({
+      address: filter.address,
+      event: filter.event,
+      strict: true,
+      fromBlock: chunk.fromBlock,
+      toBlock: chunk.toBlock,
+    });
+    return logs.map(viemLogToRawLog);
+  });
+  return perTask.flat();
 }
 
 /** Fetch a single Lido `TokenRebased` at an exact block (e.g. the seed rebase
