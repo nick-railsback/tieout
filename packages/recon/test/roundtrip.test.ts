@@ -6,7 +6,7 @@ import { canonicalize } from "../src/canonical.ts";
 import { validateLedger } from "../src/ledger.ts";
 import { validateManifest } from "../src/manifest.ts";
 import { canonicalReport, recon, type Report } from "../src/recon.ts";
-import { parseReportJson } from "../src/narrate.ts";
+import { parseReportJson } from "../src/report-json.ts";
 
 // Health-audit Testing finding: parseReportJson hand-re-declares the entire
 // report shape (parsePins/parseAxis/parseLot/parseDiscrepancy/parseValuation).

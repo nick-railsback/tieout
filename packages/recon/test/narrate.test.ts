@@ -5,7 +5,8 @@ import { test } from "node:test";
 import { canonicalHash } from "../src/canonical.ts";
 import { validateLedger } from "../src/ledger.ts";
 import { validateManifest } from "../src/manifest.ts";
-import { narrateDiscrepancy, narrateReport, parseReportJson } from "../src/narrate.ts";
+import { narrateDiscrepancy, narrateReport } from "../src/narrate.ts";
+import { parseReportJson } from "../src/report-json.ts";
 import { canonicalReport, recon, type Discrepancy, type Report } from "../src/recon.ts";
 
 // Story 5.1 — the pure, deterministic explain-itself narration (AD-17). Every

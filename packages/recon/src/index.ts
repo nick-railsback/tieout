@@ -117,5 +117,7 @@ export {
   type DiscrepancyNarration,
   narrateReport,
   narrateDiscrepancy,
-  parseReportJson,
 } from "./narrate.ts";
+// The report.json hydrator lives beside its inverse (canonicalReport), not in
+// the narration module — the web renders through it (AD-13).
+export { parseReportJson } from "./report-json.ts";
