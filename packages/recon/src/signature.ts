@@ -64,7 +64,16 @@ export type SignatureEnvelope = {
   readonly binding: ReportBinding;
 };
 
-/** Sign a report binding offline with a local private key (no wallet/RPC). */
+/**
+ * Sign a report binding offline with a local private key (no wallet/RPC).
+ *
+ * DELIBERATELY caller-side (AD-19): the AD-19 signing side is a LIBRARY API with
+ * no `tieout-sign` bin, by design — an author signs in their own trust boundary
+ * (their key never touches this tool's CLI surface), then ships the detached
+ * envelope alongside `report.json`. `verify` is the asymmetric half that DOES
+ * have a bin, because verification is the adversarial, run-anywhere step; signing
+ * is not. This asymmetry is a decision, not a missing feature (DEBT-1).
+ */
 export async function signReport(privateKey: Hex, binding: ReportBinding): Promise<SignatureEnvelope> {
   const account = privateKeyToAccount(privateKey);
   const signature = await account.signTypedData({
