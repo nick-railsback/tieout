@@ -12,6 +12,7 @@ import {
   type TokenSymbol,
 } from "../src/index.ts";
 import { checkAddressTable } from "../src/guard.ts";
+import type { AddressEntry } from "../src/index.ts";
 
 // T2 / AC-1.1.b, AC-1.1.c — cast-checked address table + build guard.
 
@@ -24,6 +25,35 @@ test("every stored address is the lowercase of its EIP-55 checksum (AC-1.1.c)", 
     // getAddress never receives the EIP-1191 chainId argument.
     assert.equal(entry.address, getAddress(entry.address).toLowerCase());
   }
+});
+
+// SEC-1 — the guard must carry EIP-55's actual error detection, not a tautology.
+// The stored `checksummed` form is what a maintainer transcribes from cast; a
+// single mistyped nibble breaks its case-checksum and MUST fail the build. The
+// lowercase `address` alone cannot detect this (getAddress(x).toLowerCase()===x
+// holds for any well-formed lowercase hex, wrong address included).
+
+test("SEC-1: a mistyped nibble in an entry's checksummed form is rejected by the guard", () => {
+  const good = ADDRESS_TABLE[0]!;
+  // Corrupt exactly one hex nibble of the checksummed form (F -> A at index 9).
+  // Still 20 well-formed bytes, but no longer a valid EIP-55 checksum.
+  const corrupted = (good.checksummed.slice(0, 9) + "A" + good.checksummed.slice(10)) as `0x${string}`;
+  assert.notEqual(corrupted, good.checksummed, "test setup: corruption must change the string");
+  const badEntry: AddressEntry = { ...good, checksummed: corrupted, address: corrupted.toLowerCase() as `0x${string}` };
+  const errors = checkAddressTable([badEntry]);
+  assert.ok(
+    errors.length > 0,
+    "guard accepted a checksum-corrupted entry — EIP-55 error detection is a no-op",
+  );
+});
+
+test("SEC-1: an address that disagrees with its checksummed sibling is rejected", () => {
+  const good = ADDRESS_TABLE[0]!;
+  // A wrong-but-well-formed lowercase address that no longer matches checksummed.
+  const wrongAddress = (good.address.slice(0, 41) + (good.address[41] === "0" ? "1" : "0")) as `0x${string}`;
+  const badEntry: AddressEntry = { ...good, address: wrongAddress };
+  const errors = checkAddressTable([badEntry]);
+  assert.ok(errors.length > 0, "guard accepted an address that disagrees with its checksummed form");
 });
 
 test("stored addresses are lowercase, 0x-prefixed, fixed-width (AC-1.1.b)", () => {

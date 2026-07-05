@@ -45,8 +45,19 @@ export type AddressEntry = {
   readonly kind: AddressKind;
   /** Free-form label; `kind` disambiguates a token ticker from a feed pair. */
   readonly symbol: string;
-  /** Lowercase, `0x`-prefixed, 20-byte hex. */
+  /** Lowercase, `0x`-prefixed, 20-byte hex — the canonical form every consumer
+   * reads (AD-5/AD-11). Must equal `checksummed.toLowerCase()`. */
   readonly address: `0x${string}`;
+  /**
+   * The EIP-55 mixed-case checksum form, transcribed from the trusted source
+   * (Etherscan / `cast to-check-sum-address`) — NOT derived from `address`. This
+   * is the field that carries EIP-55's error detection: the guard asserts
+   * `getAddress(checksummed) === checksummed`, so a single mistyped nibble in a
+   * future entry breaks its case-checksum and fails the build. The lowercase
+   * `address` alone cannot do this — `getAddress(x).toLowerCase() === x` holds
+   * for ANY well-formed lowercase hex, wrong address included (SEC-1).
+   */
+  readonly checksummed: `0x${string}`;
 };
 
 /**
@@ -57,19 +68,21 @@ export type AddressEntry = {
  * (31337) sorts after mainnet.
  */
 export const ADDRESS_TABLE: readonly AddressEntry[] = [
-  { chainId: 1, kind: "token", symbol: "wstETH", address: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0" },
-  { chainId: 1, kind: "token", symbol: "stETH", address: "0xae7ab96520de3a18e5e111b5eaab095312d7fe84" },
+  // Each `checksummed` is the `cast to-check-sum-address` output for the stored
+  // lowercase `address`; the guard cross-checks the two (AD-5, SEC-1).
+  { chainId: 1, kind: "token", symbol: "wstETH", address: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", checksummed: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" },
+  { chainId: 1, kind: "token", symbol: "stETH", address: "0xae7ab96520de3a18e5e111b5eaab095312d7fe84", checksummed: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
   // Multicall3 — canonical, identical on every chain. Live wstETH positions are
   // read on mainnet via `multicall` (one aggregate3 round-trip); the address is
   // resolved from here, never inlined in apps/web (AD-5).
-  { chainId: 1, kind: "utility", symbol: "Multicall3", address: "0xca11bde05977b3631167028862be2a173976ca11" },
-  { chainId: 1, kind: "priceFeed", symbol: "stETH/USD", address: "0xcfe54b5cd566ab89272946f602d76ea879cab4a8" },
+  { chainId: 1, kind: "utility", symbol: "Multicall3", address: "0xca11bde05977b3631167028862be2a173976ca11", checksummed: "0xcA11bde05977b3631167028862bE2a173976CA11" },
+  { chainId: 1, kind: "priceFeed", symbol: "stETH/USD", address: "0xcfe54b5cd566ab89272946f602d76ea879cab4a8", checksummed: "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8" },
   // The AttestationRegistry anchor (AD-14). Batch 3's maintainer-gated deploy
   // ladder has run only on local Anvil (31337) to date; Base mainnet (8453) is
   // intentionally ABSENT until its rung runs, so the web degrades gracefully
   // ("not yet anchored") rather than show a fabricated record. Add the Base
-  // entry (lowercase, guard-checked) at deploy time.
-  { chainId: 31337, kind: "registry", symbol: "AttestationRegistry", address: "0x5fbdb2315678afecb367f032d93f642f64180aa3" },
+  // entry (lowercase + checksummed, guard-checked) at deploy time.
+  { chainId: 31337, kind: "registry", symbol: "AttestationRegistry", address: "0x5fbdb2315678afecb367f032d93f642f64180aa3", checksummed: "0x5FbDB2315678afecb367f032d93F642f64180aa3" },
 ] as const;
 
 /** Look up a **token** address for a chain. Throws if absent (a shell-side
