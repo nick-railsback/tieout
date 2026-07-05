@@ -67,6 +67,24 @@ test("rejects a lot acquired after the window closes (AC-1.2.b)", () => {
   expectReject(bad, "acquisition-after-window");
 });
 
+// REL-4 — the engine derives `onchain` purely from in-window transfer flows and
+// has no opening-balance concept, so a lot acquired BEFORE the window opens can
+// never appear in an in-window transfer: it would guarantee a closingShares
+// discrepancy (and could drive onchainShares negative). A typed input error
+// beats a red report that reflects the model boundary, not the books.
+test("rejects a lot acquired before the window opens (REL-4)", () => {
+  const bad = validLedger();
+  (bad["lots"] as Array<Record<string, unknown>>)[0]!["acquisitionBlock"] = "20999999";
+  expectReject(bad, "acquisition-before-window");
+});
+
+test("accepts a lot acquired exactly at startBlock (inclusive lower bound, REL-4)", () => {
+  const edge = validLedger();
+  (edge["lots"] as Array<Record<string, unknown>>)[0]!["acquisitionBlock"] = "21000000";
+  const result = validateLedger(edge);
+  assert.equal(result.ok, true);
+});
+
 test("rejects lots not ordered by (acquisitionBlock, lotId) (AC-1.2.b, AD-4)", () => {
   const bad = validLedger();
   const lots = bad["lots"] as Array<Record<string, unknown>>;
