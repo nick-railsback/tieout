@@ -35,8 +35,10 @@ import {
   type Report,
 } from "./recon.ts";
 
-/** wstETH shares and stETH rewards are both 18-dp wei on the report. */
-const WEI_DECIMALS = 18;
+/** wstETH shares and stETH rewards are both 18-dp wei on the report. Exported so
+ * the web renders the same axis deltas as the narration lines above them, from
+ * ONE formatter rather than a drifting copy (DRY-2). */
+export const WEI_DECIMALS = 18;
 
 /** Per-discrepancy narration: the human line plus the canonical facts it names,
  * echoed so a UI can link the event without re-parsing the sentence. */
@@ -62,8 +64,9 @@ export type ReportNarration = {
 
 /** Render an 18-dp wei bigint as a signed decimal string, e.g. `-500…000n` →
  * `"-0.5"`. Uses viem `formatUnits` on the magnitude and prefixes an explicit
- * sign so the direction of the book-vs-chain gap reads honestly. */
-function formatSignedWei(value: bigint): string {
+ * sign so the direction of the book-vs-chain gap reads honestly. Exported so the
+ * web's axis-delta column and these narration lines render from one source (DRY-2). */
+export function formatSignedWei(value: bigint): string {
   const negative = value < 0n;
   const magnitude = negative ? -value : value;
   return `${negative ? "-" : "+"}${formatUnits(magnitude, WEI_DECIMALS)}`;

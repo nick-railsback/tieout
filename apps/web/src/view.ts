@@ -15,14 +15,13 @@
  */
 import { formatUnits } from "viem";
 import {
+  formatSignedWei,
   narrateReport,
+  WEI_DECIMALS,
   type DiscrepancyNarration,
   type Report,
   type ReportNarration,
 } from "@tieout/recon";
-
-/** wstETH shares, stETH rewards, and the stEth-per-token rate are all 18-dp. */
-const WEI_DECIMALS = 18;
 
 /**
  * The honesty boundary, verbatim on the surface (AD-16). A reproduced hash
@@ -41,13 +40,6 @@ export const ANCHOR_NOTE =
  * tie-out, not a hand-built reconciled report (AC-5.2.b honesty). */
 export const REPORT_NOTE =
   "Both committed reports are real engine output carrying the injected reward discrepancy (the explain-itself demo). The everyday always-green signal is the live position above and the closing-shares axis tie-out — never a hand-built “all clear”.";
-
-/** Render a signed 18-dp wei bigint as `"+0.5"` / `"-0.5"`. */
-function signedWei(value: bigint, decimals = WEI_DECIMALS): string {
-  const negative = value < 0n;
-  const magnitude = negative ? -value : value;
-  return `${negative ? "-" : "+"}${formatUnits(magnitude, decimals)}`;
-}
 
 /** Render a signed USD bigint at its declared scale as `"$1.23"` / `"-$1.23"`. */
 function usd(value: bigint, usdDecimals: bigint): string {
@@ -105,7 +97,7 @@ export function reportViewModel(report: Report): ReportViewModel {
       unit: "wstETH",
       onchain: formatUnits(closingShares.onchain, WEI_DECIMALS),
       ledger: formatUnits(closingShares.ledger, WEI_DECIMALS),
-      delta: signedWei(closingShares.delta),
+      delta: formatSignedWei(closingShares.delta),
       tieOut: closingShares.tieOut,
       tieOutLabel: tieOutLabel(closingShares.tieOut),
     },
@@ -115,7 +107,7 @@ export function reportViewModel(report: Report): ReportViewModel {
       unit: "stETH",
       onchain: formatUnits(reward.onchain, WEI_DECIMALS),
       ledger: formatUnits(reward.ledger, WEI_DECIMALS),
-      delta: signedWei(reward.delta),
+      delta: formatSignedWei(reward.delta),
       tieOut: reward.tieOut,
       tieOutLabel: tieOutLabel(reward.tieOut),
     },
