@@ -155,10 +155,16 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
           tr.append(td);
         }
         const tie = dom.createElement("td");
-        tie.textContent = axis.tieOut ? "✓" : "✗";
-        tie.className = axis.tieOut ? "tie-ok" : "tie-no";
-        // A bare ✓/✗ reads as "check"/"multiplication x" — name the cell instead.
-        tie.setAttribute("aria-label", axis.tieOutLabel);
+        // Name-from-author on a bare <td> (role=cell) is unreliably announced —
+        // NVDA/VoiceOver commonly read the cell contents ("check"/"multiplication
+        // x") and ignore an aria-label. Put the glyph in an inner role=img span so
+        // the label reliably names it (UX-3).
+        const glyph = dom.createElement("span");
+        glyph.textContent = axis.tieOut ? "✓" : "✗";
+        glyph.className = axis.tieOut ? "tie-ok" : "tie-no";
+        glyph.setAttribute("role", "img");
+        glyph.setAttribute("aria-label", axis.tieOutLabel);
+        tie.append(glyph);
         tr.append(tie);
         return tr;
       }),
@@ -260,9 +266,16 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
     await paintAnchor(myGeneration, reportHash);
   }
 
+  /** The report shown on first load. The slice report's subject is a REAL mainnet
+   * wallet, so the marquee live panel reads real (non-zero) balances; the golden
+   * report's subject is a synthetic vanity address whose live position is all
+   * zeros — technically honest but indistinguishable from broken as a first
+   * impression (UX-4). Must stay in sync with index.html's initial aria-pressed. */
+  const DEFAULT_REPORT: ReportKey = "slice";
+
   /** Paint the static honesty copy, label + wire the report toggles, and load the
-   * default (golden) report. Kept out of module scope so importing the shell has
-   * no side effects (the test drives `loadReport` directly). */
+   * default report. Kept out of module scope so importing the shell has no side
+   * effects (the test drives `loadReport` directly). */
   function mount(): void {
     setText("honesty-banner", HONESTY_BOUNDARY);
     setText("anchor-note", ANCHOR_NOTE);
@@ -283,7 +296,7 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
       });
     }
 
-    void loadReport("golden").catch((error) => console.error("loadReport failed", error));
+    void loadReport(DEFAULT_REPORT).catch((error) => console.error("loadReport failed", error));
   }
 
   return { loadReport, mount };

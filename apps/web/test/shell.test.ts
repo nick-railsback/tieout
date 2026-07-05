@@ -127,6 +127,23 @@ test("UX-1/UX-2: a failed toggle clears the previous report's hash and live badg
   assert.equal(dom.text("live-wsteth"), "—");
 });
 
+test("UX-3: the tie-out glyph is a role=img span with a text label, not a bare cell", async () => {
+  const dom = new FakeDom();
+  const shell = createShell(makeDeps(dom));
+  await shell.loadReport("golden");
+
+  const axes = dom.getElementById("report-axes");
+  assert.ok(axes.children.length >= 1, "axis rows must be painted");
+  const row = axes.children[0]!;
+  const tieCell = row.children[row.children.length - 1]!; // the tie-out cell
+  // Name-from-author on a bare <td> (role=cell) is unreliably announced; the
+  // label must sit on an inner role=img span (UX-3).
+  const glyph = tieCell.children[0];
+  assert.ok(glyph, "the tie cell must wrap the glyph in an inner element");
+  assert.equal(glyph!.attrs.get("role"), "img");
+  assert.match(glyph!.attrs.get("aria-label") ?? "", /ties out|does not tie out/);
+});
+
 test("UX-2: an initial load failure clears the hard-coded 'connecting…' badge", async () => {
   const dom = new FakeDom();
   // The static markup ships live-status as "connecting…" (index.html); simulate it.
