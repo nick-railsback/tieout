@@ -67,6 +67,11 @@ This is a **judgment claim, not a market claim.** Custodial reconciliation tools
 | solc | 0.8.35 | auto-fetched by `forge` (`foundry.toml`) |
 
 ```bash
+# forge-std is a git submodule (packages/contracts/lib/forge-std); clone WITH
+# submodules or the Foundry suite fails on unresolved forge-std/Test.sol imports.
+git clone --recurse-submodules <repo-url> tieout && cd tieout
+# Already cloned without them? Run once:  git submodule update --init --recursive
+
 pnpm install
 pnpm -r build
 pnpm -r test                          # Node suites: recon, addresses, indexer, web
