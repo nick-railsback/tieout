@@ -5,10 +5,11 @@ import { type RawLog } from "@tieout/recon";
  * `event.log` (only `{address, topics, data, logIndex}`), `event.block`, and
  * `event.transaction`; this adapter assembles the SAME declared `RawLog` shape
  * the `verify` `eth_getLogs` adapter builds, so the ONE shared `derive` yields a
- * byte-identical manifest from either source. JS `number` fields
- * (`logIndex`/`transactionIndex`) are converted to `bigint` at THIS boundary
- * (AD-2). Ponder is NOT on the verify path — this adapter feeds the accumulated
- * logs through `derive` only after historical sync completes (`/ready`).
+ * byte-identical manifest from either source (proven directly by the parity
+ * test). JS `number` fields (`logIndex`/`transactionIndex`) are converted to
+ * `bigint` at THIS boundary (AD-2). Ponder is NOT on the verify path. The
+ * whole-range read-back that would feed the accumulated logs through `derive`
+ * after historical sync (`/ready`) is deferred and not yet implemented (README).
  *
  * [Source: docs/ARCHITECTURE-SPINE.md#AD-9]
  */

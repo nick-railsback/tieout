@@ -24,9 +24,13 @@ function rowFor(event: Parameters<typeof ponderEventToRawLog>[0] & { id: string 
 /**
  * Accumulate each normalized log idempotently (keyed by `event.id`). Ponder
  * re-runs handlers on reorgs, so `onConflictDoNothing` keeps accumulation
- * deterministic + idempotent. After `/ready` (historical sync complete), the
- * accumulated rows feed the ONE shared `derive` for whole-range manifest
- * reconstruction — Ponder is NOT on the verify path (AD-9).
+ * deterministic + idempotent.
+ *
+ * NOTE: this package is a write-only accumulator today. The read-back that would
+ * feed these `raw_log` rows into the ONE shared `derive` for whole-range
+ * manifest reconstruction (after `/ready`, historical sync complete) is NOT YET
+ * IMPLEMENTED — deferred, see README ("Not yet implemented"). Ponder is NOT on
+ * the verify path either way (AD-9).
  */
 ponder.on("WstETH:Transfer", async ({ event, context }) => {
   await context.db.insert(rawLog).values(rowFor(event)).onConflictDoNothing();

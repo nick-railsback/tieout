@@ -1,16 +1,24 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022"],
+    // Ponder needs bundler-style resolution + `.ts`-extension imports and runs
+    // its own build, so this package only type-checks (noEmit). Everything else —
+    // the base's full strictness set (exactOptionalPropertyTypes, noImplicit*,
+    // noUnused*, verbatimModuleSyntax, …) — is inherited so this
+    // determinism-adjacent package gets the SAME checking as the rest of the
+    // workspace, and CI's "strict" step name stays true (CONS-1).
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "esModuleInterop": true,
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "noEmit": true,
     "allowImportingTsExtensions": true,
+    "noEmit": true,
+    // Ponder runs its own build — this package never emits .d.ts/.js, so the
+    // base's declaration/sourceMap options are moot here and their portability
+    // check (TS2883) trips on Ponder's Drizzle-inferred `onchainTable` type.
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "esModuleInterop": true,
     "types": ["node"]
   },
   "include": ["./**/*.ts", "ponder-env.d.ts"]
