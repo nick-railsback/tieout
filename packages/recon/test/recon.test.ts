@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { validateLedger } from "../src/ledger.ts";
-import { type Manifest, manifestHash, validateManifest } from "../src/manifest.ts";
+import { type Manifest, type TransferEvent, manifestHash, validateManifest } from "../src/manifest.ts";
 import { recon } from "../src/recon.ts";
 
 const GOLDEN = join(import.meta.dirname, "..", "fixtures", "golden");
@@ -97,6 +97,48 @@ test("reconciles both axes: shares tie out, reward breaks by the injected delta"
 
   // Per-lot records ordered by (acquisitionBlock, lotId) (AC-1.5.c, AD-13).
   assert.deepEqual(report.lots.map((l) => l.lotId), ["L1", "L2"]);
+});
+
+// Health-audit Security finding (SEC-2): recon() summed Transfer.value into
+// onchainShares WITHOUT checking event.address, while derive validates the
+// emitter. A hand-authored, validator-passing manifest could inject a Transfer
+// from an arbitrary contract to the subject and inflate the tie-out base. recon
+// must resolve wstETH from the manifest's own addressTable and ignore foreign
+// emitters (defense-in-depth: the trustless verify path also re-derives).
+test("SEC-2: a Transfer from a non-wstETH emitter is not counted into onchainShares", () => {
+  const manifest = goldenManifest();
+  const ledgerResult = validateLedger(loadJson("ledger.json"));
+  assert.ok(ledgerResult.ok);
+  if (!ledgerResult.ok) return;
+  const ledger = ledgerResult.value;
+
+  const clean = recon(manifest, ledger);
+  assert.ok(clean.ok);
+  if (!clean.ok) return;
+
+  // Forge a large Transfer TO the subject from a NON-wstETH contract, in-window.
+  const forged: TransferEvent = {
+    type: "Transfer",
+    address: "0x000000000000000000000000000000000000dead",
+    blockNumber: manifest.startBlock + 1n,
+    txIndex: 0n,
+    logIndex: 0n,
+    blockHash: `0x${"ab".repeat(32)}`,
+    txHash: `0x${"cd".repeat(32)}`,
+    from: "0x0000000000000000000000000000000000000000",
+    to: ledger.subject,
+    value: 999_000_000_000_000_000_000n,
+  };
+  const tampered: Manifest = { ...manifest, events: [...manifest.events, forged] };
+
+  const got = recon(tampered, ledger);
+  assert.ok(got.ok);
+  if (!got.ok) return;
+  // The forged emitter must NOT move the closing-shares base.
+  assert.equal(
+    got.value.report.axes.closingShares.onchain,
+    clean.value.report.axes.closingShares.onchain,
+  );
 });
 
 test("returns a typed window-mismatch error — never throws across the boundary (AC-1.2.b)", () => {

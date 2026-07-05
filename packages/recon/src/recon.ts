@@ -159,23 +159,37 @@ function inWindow(event: ManifestEvent, manifest: Manifest): boolean {
   return event.blockNumber >= manifest.startBlock && event.blockNumber <= manifest.endBlock;
 }
 
-/** The latest in-window rebase — the last candidate for a reward discrepancy
- * (a locator, not a proven cause; see {@link BreakingEvent}). */
-function lastRebaseInWindow(manifest: Manifest): RebaseEvent | null {
+/** Resolve a token address from the manifest's OWN embedded table (AD-5),
+ * lowercased. `null` when absent — the manifest is malformed for this engine. */
+function manifestTokenAddress(manifest: Manifest, symbol: string): string | null {
+  const row = manifest.addressTable.find((entry) => entry.symbol === symbol);
+  return row ? row.address.toLowerCase() : null;
+}
+
+/** The latest in-window rebase from the real stETH token — the last candidate for
+ * a reward discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
+function lastRebaseInWindow(manifest: Manifest, stETH: string): RebaseEvent | null {
   let found: RebaseEvent | null = null;
   for (const event of manifest.events) {
-    if (event.type === "TokenRebased" && inWindow(event, manifest)) found = event;
+    if (
+      event.type === "TokenRebased" &&
+      event.address.toLowerCase() === stETH &&
+      inWindow(event, manifest)
+    ) {
+      found = event;
+    }
   }
   return found;
 }
 
-/** The latest in-window transfer touching the subject — the last candidate for a
- * closing-shares discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
-function lastSubjectTransferInWindow(manifest: Manifest, subject: string): TransferEvent | null {
+/** The latest in-window wstETH transfer touching the subject — the last candidate
+ * for a closing-shares discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
+function lastSubjectTransferInWindow(manifest: Manifest, subject: string, wstETH: string): TransferEvent | null {
   let found: TransferEvent | null = null;
   for (const event of manifest.events) {
     if (
       event.type === "Transfer" &&
+      event.address.toLowerCase() === wstETH &&
       inWindow(event, manifest) &&
       (event.from === subject || event.to === subject)
     ) {
@@ -230,10 +244,26 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     });
   }
 
+  // Resolve the real token addresses from the manifest's OWN embedded table so
+  // recon trusts only events emitted by the wstETH/stETH contracts — derive
+  // already filters emitters, but recon must not re-trust a hand-authored,
+  // validator-passing manifest that injects a Transfer from a foreign contract
+  // (SEC-2). A manifest lacking the tokens is malformed for this engine.
+  const wstETH = manifestTokenAddress(manifest, "wstETH");
+  const stETH = manifestTokenAddress(manifest, "stETH");
+  if (wstETH === null || stETH === null) {
+    return err({
+      code: "missing-token-address",
+      message: "manifest.addressTable must carry wstETH and stETH (AD-5)",
+    });
+  }
+
   // --- Closing-shares axis: event-derived balance vs Σ lots.shares ---
   let onchainShares = 0n;
   for (const event of manifest.events) {
-    if (event.type !== "Transfer" || !inWindow(event, manifest)) continue;
+    if (event.type !== "Transfer" || event.address.toLowerCase() !== wstETH || !inWindow(event, manifest)) {
+      continue;
+    }
     if (event.to === ledger.subject) onchainShares += event.value;
     if (event.from === ledger.subject) onchainShares -= event.value;
   }
@@ -281,14 +311,14 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     discrepancies.push({
       axis: "closingShares",
       delta: sharesDelta,
-      breakingEvent: breakingEventOf(lastSubjectTransferInWindow(manifest, ledger.subject)),
+      breakingEvent: breakingEventOf(lastSubjectTransferInWindow(manifest, ledger.subject, wstETH)),
     });
   }
   if (rewardDelta !== 0n) {
     discrepancies.push({
       axis: "reward",
       delta: rewardDelta,
-      breakingEvent: breakingEventOf(lastRebaseInWindow(manifest)),
+      breakingEvent: breakingEventOf(lastRebaseInWindow(manifest, stETH)),
     });
   }
 
