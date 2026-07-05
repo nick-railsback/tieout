@@ -1,6 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { mainnetClient, DEFAULT_BLOCKS_PER_CHUNK } from "../rpc.ts";
 import { canonicalBytes } from "../canonical.ts";
 import { type Ledger, canonicalLedger, ledgerHash } from "../ledger.ts";
 import { canonicalManifest, manifestHash } from "../manifest.ts";
@@ -21,7 +20,6 @@ import { SLICE_START_BLOCK, SLICE_END_BLOCK } from "../slice.ts";
  */
 const START_BLOCK = SLICE_START_BLOCK;
 const END_BLOCK = SLICE_END_BLOCK;
-const BLOCKS_PER_CHUNK = 9n; // free-tier eth_getLogs cap
 const SUBJECT = "0xd0558b2f0f0a00cbc6176c15fec82ebb8e7bb696";
 /** The injected discrepancy: the books under-report the reward by this many wei. */
 const INJECTED_REWARD_DELTA = 1_000_000_000n;
@@ -32,13 +30,12 @@ async function main(): Promise<number> {
     process.stderr.write("ETH_RPC_URL not set\n");
     return 2;
   }
-  // High retryCount lets viem absorb the free-tier 25 req/min limit (429 → backoff).
-  const client = createPublicClient({ chain: mainnet, transport: http(rpc, { retryCount: 12 }) });
+  const client = mainnetClient(rpc);
 
   const reconstructed = await reconstructManifest(client, {
     startBlock: START_BLOCK,
     endBlock: END_BLOCK,
-    blocksPerChunk: BLOCKS_PER_CHUNK,
+    blocksPerChunk: DEFAULT_BLOCKS_PER_CHUNK,
   });
   if (!reconstructed.ok) {
     process.stderr.write(`reconstruct failed: ${JSON.stringify(reconstructed.error)}\n`);

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { createPublicClient, http, keccak256 } from "viem";
-import { mainnet } from "viem/chains";
+import { keccak256 } from "viem";
+import { mainnetClient, DEFAULT_BLOCKS_PER_CHUNK } from "../rpc.ts";
 import { canonicalBytes } from "../canonical.ts";
 import { validateLedger, ledgerHash } from "../ledger.ts";
 import { manifestHash } from "../manifest.ts";
@@ -63,7 +63,7 @@ async function main(): Promise<number> {
   if (rpc === undefined) return fail("ETH_RPC_URL not set");
   // Validate VERIFY_CHUNK env is a positive integer before use (never crash on a
   // slip). [Review L4]
-  const chunkRaw = process.env.VERIFY_CHUNK ?? "9";
+  const chunkRaw = process.env.VERIFY_CHUNK ?? String(DEFAULT_BLOCKS_PER_CHUNK);
   if (!/^[0-9]+$/.test(chunkRaw) || BigInt(chunkRaw) < 1n) {
     return fail(`VERIFY_CHUNK must be a positive integer (got "${chunkRaw}")`);
   }
@@ -114,8 +114,7 @@ async function main(): Promise<number> {
   }
 
   // 2) L0 re-fetch + re-derive over the report's pinned range.
-  // High retryCount lets viem absorb the free-tier 25 req/min limit (429 → backoff).
-  const client = createPublicClient({ chain: mainnet, transport: http(rpc, { retryCount: 12 }) });
+  const client = mainnetClient(rpc);
   const reconstructed = await reconstructManifest(client, {
     startBlock,
     endBlock,
