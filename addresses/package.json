@@ -1,6 +1,7 @@
 {
   "name": "@tieout/addresses",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Single cast-checked address table keyed by chainId (AD-5). The sole source of chain constants for the workspace.",

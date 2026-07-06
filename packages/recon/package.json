@@ -1,6 +1,7 @@
 {
   "name": "@tieout/recon",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Pure, deterministic wstETH reconciliation engine — canonicalizer + keccak binding, ledger/manifest contracts, and recon(manifest, ledger) -> (report, reportHash).",

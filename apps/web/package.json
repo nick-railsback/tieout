@@ -1,6 +1,7 @@
 {
   "name": "@tieout/web",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "The tieout web surface — live wstETH positions (Multicall3 + WebSocket), the explain-itself report diff, and the Base attestation anchor. Renders only real engine/chain output (AD-16/AD-17); it never re-hashes a report (AD-13).",

@@ -1,6 +1,7 @@
 {
   "name": "@tieout/indexer",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Ponder indexer (Batch 2) — indexes the pinned wstETH Transfer / stETH TokenRebased slice and accumulates the shared RawLog idempotently; the whole-range read-back into derive is deferred (see README).",
