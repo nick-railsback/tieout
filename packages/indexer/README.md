@@ -1,5 +1,9 @@
 # @tieout/indexer
 
+_In plain terms: a live event recorder for the future "continuous monitoring"
+feature. It is deliberately **not** part of the trust story — the verifier
+always fetches chain data itself._
+
 Ponder **0.16.6** indexer. **Batch 2 (Story 2.2)** implements the live adapter:
 two log sources — wstETH `Transfer` and Lido/stETH `TokenRebased` — over the
 pinned slice, an indexing handler that assembles the shared `RawLog`

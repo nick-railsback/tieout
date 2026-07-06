@@ -1,7 +1,13 @@
 # @tieout/contracts
 
-Foundry project for Tieout's onchain anchor. Two MVP contracts, both built and
-tested with `forge` (not the Node workspace toolchain):
+Foundry project for Tieout's onchain anchor.
+
+_In plain terms: `AttestationRegistry` is a tiny public notary. It records that
+a report fingerprint existed at a moment in time — nothing more. It never
+vouches for correctness or identity._
+
+Two MVP contracts, both built and tested with `forge` (not the Node workspace
+toolchain):
 
 - **`AttestationRegistry`** (Batch 3) — a thin, identity-free anchor.
   `attest(bytes32 reportHash)` records `{uint64 blockNumber, uint64 timestamp}`

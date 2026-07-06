@@ -5,6 +5,12 @@ explain-itself report diff, and the Base attestation anchor. It renders **only
 real engine/chain output** (AD-16/AD-17) and never re-hashes a report — each
 committed report ships its real `reportHash` as data (AD-13).
 
+_In plain terms: the demo page. It shows the live position streamed from
+mainnet, the reconciliation report with its plain-English explanation of any
+discrepancy, and whether the report's fingerprint is anchored onchain. It is a
+plain static site — no backend, no framework — which is what lets it ship as an
+IPFS pin behind the `tieout.eth` ENS name._
+
 ## Develop
 
 ```sh

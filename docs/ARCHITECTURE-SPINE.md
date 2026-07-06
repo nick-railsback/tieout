@@ -7,7 +7,7 @@ paradigm: 'functional core / imperative shell (ports-and-adapters at the seam)'
 scope: 'Tieout MVP thin slice: deterministic onchain reconciliation engine + `tieout verify` (one public wstETH address, 30-day finalized window)'
 status: final
 created: '2026-07-01'
-updated: '2026-07-01'
+updated: '2026-07-06'
 binds:
   - recon
   - indexer
@@ -229,7 +229,7 @@ graph LR
 - `recon` + `verify` ship as an npm package / CLI — run anywhere with an RPC URL; no service required. The L0 re-fetch chunks the pinned range deterministically (providers cap `eth_getLogs` spans; the 30-day window is ~216k blocks), chunk boundaries derived only from the pins.
 - `indexer` (Ponder) is the only stateful service (its store: Postgres, or embedded PGlite), used for the live app + the continuous "CI" runner — **not** required to verify. Runners use `ponder start` (never `ponder dev`, which drops/recreates tables) with `DATABASE_SCHEMA` set and `PONDER_TELEMETRY_DISABLED=1`; an ephemeral store forfeits the `ponder_sync` RPC cache (cost, not correctness).
 - `contracts`: tested on local **Anvil** → rehearsal `--broadcast` deploy on **Base Sepolia** → single canonical anchor on **Base mainnet**; verify contract source on Basescan (`forge verify-contract`, explicitly on the Etherscan verifier with an API key — Foundry silently defaults to Sourcify without one) after deploy (an unverified anchor contract is indistinguishable from a scam).
-- `apps/web`: reads mainnet (Multicall3 `0xcA11…CA11` + WebSocket) for live positions and Base for the attestation record; the WebSocket transport's finite default reconnect budget (viem: 5 attempts / 2 s delay) is sized or its terminal-disconnect state handled.
+- `apps/web`: reads mainnet (Multicall3 `0xcA11…CA11` + WebSocket) for live positions and Base for the attestation record; the WebSocket transport's finite default reconnect budget (viem: 5 attempts / 2 s delay) is sized or its terminal-disconnect state handled. It ships as a **static IPFS-pinned site** whose CID is published as the `tieout.eth` ENS contenthash (reachable via `tieout.eth.limo`) — content-addressed hosting, no server; each release is a new CID + one contenthash update. Any RPC endpoint baked into the static build is public — prefer keyless public endpoints over keys.
 
 ## Capability → Architecture Map
 

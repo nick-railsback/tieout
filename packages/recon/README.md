@@ -5,6 +5,10 @@ manifest (events + rate curve, derived from public chain data) and an internal
 ledger, it produces a `report.json` and a `reportHash` that any machine
 reproduces byte-for-byte.
 
+_In plain terms: this is the calculator. Feed it the blockchain facts and the
+books, and it always produces the same report and the same fingerprint — on any
+machine, forever. The `verify` CLI here is the one command an auditor runs._
+
 ## The pure-core contract
 
 The engine core is a pure function (AD-1) — no I/O, no clocks, no floats:
