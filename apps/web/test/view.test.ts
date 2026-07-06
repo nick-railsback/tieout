@@ -72,7 +72,9 @@ test("live position view computes the stETH value from the chain reads (display-
 });
 
 test("AC-5.2.a — the anchor degrades gracefully: undeployed → 'not yet anchored', no fake record", () => {
-  const notDeployed = anchorViewModel({ kind: "not-deployed", chainId: 8453 });
+  // chainId 1 has token/feed/utility entries but no registry → a genuine
+  // not-deployed state (8453/84532/31337 are all anchored as of Batch 6).
+  const notDeployed = anchorViewModel({ kind: "not-deployed", chainId: 1 });
   assert.match(notDeployed.label, /not yet anchored/i);
   assert.equal(notDeployed.tone, "neutral");
   assert.match(notDeployed.detail, /none is invented/i);

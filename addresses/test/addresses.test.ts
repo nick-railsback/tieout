@@ -144,37 +144,50 @@ test("getUtilityAddress resolves Multicall3 by kind and throws for the unknown (
   );
 });
 
-test("the AttestationRegistry entry is table-driven, never inlined (AC-5.2.a, AD-5)", () => {
-  const reg = ADDRESS_TABLE.find(
+test("the AttestationRegistry entries are table-driven, never inlined (AC-5.2.a, AD-5)", () => {
+  const regs = ADDRESS_TABLE.filter(
     (e) => e.kind === "registry" && e.symbol === "AttestationRegistry",
   );
-  assert.ok(reg, "AttestationRegistry missing from the AD-5 table");
-  // Only a REAL deploy is recorded. Batch 3's maintainer-gated ladder has run
-  // only on local Anvil (31337) so far; Base (8453) is intentionally ABSENT
-  // until its rung runs — the web must degrade gracefully, never show a fake
-  // mainnet record (AD-14).
-  assert.equal(reg.chainId, 31337);
-  assert.equal(reg.address, "0x5fbdb2315678afecb367f032d93f642f64180aa3");
+  // Only REAL deploys are recorded. Batch 6 ran the ladder's remaining rungs, so
+  // three registries are now recorded: Base mainnet (8453, the canonical anchor),
+  // local Anvil (31337), and Base Sepolia (84532, the rehearsal). The two Base
+  // rungs share one address — identical nonce-0 CREATE on both chains (AD-14).
+  assert.equal(regs.length, 3);
+  const byChain = new Map(regs.map((r) => [r.chainId, r.address]));
+  assert.equal(byChain.get(8453), "0xedb4a12ce8bd024cd3f1820ded1b1afd7f5b3dce");
+  assert.equal(byChain.get(31337), "0x5fbdb2315678afecb367f032d93f642f64180aa3");
+  assert.equal(byChain.get(84532), "0xedb4a12ce8bd024cd3f1820ded1b1afd7f5b3dce");
 });
 
-test("getRegistryAddress resolves the local registry and throws for an undeployed chain", () => {
+test("getRegistryAddress resolves a deployed registry and throws for a chain with none", () => {
+  assert.equal(
+    getRegistryAddress(8453, "AttestationRegistry"),
+    "0xedb4a12ce8bd024cd3f1820ded1b1afd7f5b3dce",
+  );
   assert.equal(
     getRegistryAddress(31337, "AttestationRegistry"),
     "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   );
+  // chainId 1 carries tokens/feed/utility but no registry entry → throws.
   assert.throws(
-    () => getRegistryAddress(8453, "AttestationRegistry"),
-    /no registry for AttestationRegistry on chainId 8453/,
+    () => getRegistryAddress(1, "AttestationRegistry"),
+    /no registry for AttestationRegistry on chainId 1/,
   );
 });
 
-test("findRegistryAddress is the non-throwing lookup the web degrades on (undeployed → undefined)", () => {
+test("findRegistryAddress resolves anchored chains and returns undefined for the rest (AD-14)", () => {
+  // Base mainnet is now anchored (Batch 6) → the web shows the real attestation.
+  assert.equal(
+    findRegistryAddress(8453, "AttestationRegistry"),
+    "0xedb4a12ce8bd024cd3f1820ded1b1afd7f5b3dce",
+  );
   assert.equal(
     findRegistryAddress(31337, "AttestationRegistry"),
     "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   );
-  // Base mainnet: not yet anchored → undefined (the web shows "not yet anchored", AD-14).
-  assert.equal(findRegistryAddress(8453, "AttestationRegistry"), undefined);
+  // A chain with no registry entry → undefined: the web degrades to "not yet
+  // anchored" rather than fabricate a record (AD-14).
+  assert.equal(findRegistryAddress(1, "AttestationRegistry"), undefined);
 });
 
 test("viem 2.54.1 isAddress/getAddress behaviour the guard depends on", () => {

@@ -107,11 +107,15 @@ report footer will reference. The non-local rungs are **maintainer actions
 executed at/near the terminal release**, each gated on explicit approval, a
 funded deployer, and a Basescan/Etherscan-V2 key.
 
-| Network             | Chain ID | Address                                    | Status                                   |
-| ------------------- | -------- | ------------------------------------------ | ---------------------------------------- |
-| Anvil (local)       | 31337    | _ephemeral per run_                        | ✅ deploy + attest proven locally         |
-| Base Sepolia        | 84532    | _to be recorded on the rehearsal deploy_   | ⏸ pending maintainer approval            |
-| Base mainnet        | 8453     | _to be recorded on the canonical anchor_   | ⏸ pending maintainer approval            |
+| Network       | Chain ID | Address (verified source)                                                                                                            | Status                             |
+| ------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Anvil (local) | 31337    | _ephemeral per run_                                                                                                                 | ✅ deploy + attest proven locally  |
+| Base Sepolia  | 84532    | [`0xeDb4a12cE8bd024Cd3f1820DEd1B1AFD7F5B3Dce`](https://sepolia.basescan.org/address/0xeDb4a12cE8bd024Cd3f1820DEd1B1AFD7F5B3Dce#code) | ✅ verified — rehearsal rung       |
+| Base mainnet  | 8453     | [`0xeDb4a12cE8bd024Cd3f1820DEd1B1AFD7F5B3Dce`](https://basescan.org/address/0xeDb4a12cE8bd024Cd3f1820DEd1B1AFD7F5B3Dce#code)         | ✅ verified — **canonical anchor** |
 
-_Update the Base Sepolia / Base mainnet rows with the deployed address + the
-Basescan verification URL once each approval-gated rung is broadcast._
+Both Base rungs resolve to one address — identical `CREATE(deployer, nonce 0)` on
+each chain. The committed slice `reportHash`
+`0x074b365ff44765e6adb16c7d608b8d16db7cabf15e79e25d8897fdaa22b32efd` is anchored on
+the **mainnet** registry via `attest(bytes32)` — [tx `0x7fe87b11…a5eb9451`](https://basescan.org/tx/0x7fe87b11c1eaec5edf43fd2cc65d415662c82a5da7daa471be0f1a79a5eb9451)
+(block 48287188) — and reads back `{blockNumber, timestamp}` in one `eth_call`.
+`submitter` is the deployer: a recorded fact, never an identity claim (AD-14).

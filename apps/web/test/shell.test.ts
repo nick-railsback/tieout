@@ -74,7 +74,9 @@ class FakeDom implements ShellDom {
   }
 }
 
-const notDeployed: AnchorState = { kind: "not-deployed", chainId: 8453 };
+// chainId 1 has no registry entry → a genuine "not-deployed" anchor state to
+// exercise the shell's degraded rendering (the Base rungs are anchored, Batch 6).
+const notDeployed: AnchorState = { kind: "not-deployed", chainId: 1 };
 
 /** deps whose fetch succeeds for golden and fails for slice (the failing toggle). */
 function makeDeps(dom: FakeDom, opts: { failGolden?: boolean } = {}): ShellDeps {
