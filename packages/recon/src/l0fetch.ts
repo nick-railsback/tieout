@@ -217,6 +217,22 @@ export async function findSeedRebaseBlock(
  * the curve, read the archive `stEthPerToken()` and assert it EXACTLY equals the
  * event-derived rate (FR7 — never a tolerance). A doctored `TokenRebased` whose
  * totals don't match the contract's own accounting fails here.
+ *
+ * Same-block corner (code-review 2026-07-07 #4, latent): the event rate is the
+ * rebase's post-state (mid-block, at the `TokenRebased` tx), while this archive
+ * `stEthPerToken()` read reflects END-of-block state. A later same-block stETH
+ * `submit`/mint therefore shifts the archive's true ratio relative to the event's
+ * — but only by ~1e-7 of one wei on the 1e18 scale (independent of submit size),
+ * so the FLOORED 1e18 values differ only if the fractional part already sits
+ * within ~1e-7 of an integer boundary: astronomically rare, never observed, and
+ * gated further by Lido's one-rebase-per-~24h-frame cadence. We deliberately do
+ * NOT add a tolerance to absorb it — AD-6 mandates exact equality and a silent
+ * tolerance would collapse the trust signal (the anti-pattern this repo bans, see
+ * crosscheck.ts). If it ever bites on honest data the fix is to read the archive
+ * at the rebase tx's post-state (not end-of-block) so both sides describe the
+ * same instant — tracked in implementation-artifacts/deferred-work.md. A false
+ * `rate-crosscheck` would make the window permanently unverifiable, so this
+ * corner is recorded, not dismissed.
  */
 export async function crossCheckRateCurveArchive(
   client: PublicClient,
