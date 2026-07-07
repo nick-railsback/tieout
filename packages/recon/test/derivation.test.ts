@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { encodeAbiParameters, encodeEventTopics, type Hex } from "viem";
-import { derive, type DerivationInput } from "../src/derivation.ts";
+import { derive, findTokenAddress, type DerivationInput } from "../src/derivation.ts";
 import { TOKEN_REBASED_EVENT, TRANSFER_EVENT } from "../src/events.ts";
-import { manifestHash } from "../src/manifest.ts";
+import { type ManifestAddress, manifestHash } from "../src/manifest.ts";
 import { type RawLog } from "../src/rawlog.ts";
 
 // T3 / AC-2.2.a-c — the ONE shared derivation: normalize + total-order + dedup +
@@ -213,4 +213,21 @@ test("returns a typed error when a required token address is absent from the tab
   assert.ok(!result.ok);
   assert.equal(result.error.kind, "missing-address");
   assert.equal(result.error.kind === "missing-address" && result.error.symbol, "wstETH");
+});
+
+// Code review 2026-07-07, finding #6: recon.ts carried a manifestTokenAddress
+// twin of this exact symbol→lowercased-address lookup. findTokenAddress is now
+// the ONE exported resolver both `derive` and `recon` share, so the two rules
+// cannot drift (e.g. one gaining case-normalization the other misses).
+test("findTokenAddress resolves a symbol to its lowercased address, else null (review #6)", () => {
+  const table: ManifestAddress[] = [
+    { chainId: 1n, symbol: "wstETH", address: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0" },
+    { chainId: 1n, symbol: "stETH", address: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
+  ];
+  // Found → lowercased (a mixed-case table entry must not leak checksum casing).
+  assert.equal(findTokenAddress(table, "wstETH"), "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0");
+  assert.equal(findTokenAddress(table, "stETH"), "0xae7ab96520de3a18e5e111b5eaab095312d7fe84");
+  // Absent → null (both a missing symbol and an empty table).
+  assert.equal(findTokenAddress(table, "USDC"), null);
+  assert.equal(findTokenAddress([], "wstETH"), null);
 });

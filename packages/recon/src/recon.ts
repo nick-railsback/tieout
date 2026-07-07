@@ -1,5 +1,6 @@
 import { type Hex } from "viem";
 import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
+import { findTokenAddress } from "./derivation.ts";
 import { type Ledger, ledgerHash } from "./ledger.ts";
 import {
   type Manifest,
@@ -159,13 +160,6 @@ function inWindow(event: ManifestEvent, manifest: Manifest): boolean {
   return event.blockNumber >= manifest.startBlock && event.blockNumber <= manifest.endBlock;
 }
 
-/** Resolve a token address from the manifest's OWN embedded table (AD-5),
- * lowercased. `null` when absent — the manifest is malformed for this engine. */
-function manifestTokenAddress(manifest: Manifest, symbol: string): string | null {
-  const row = manifest.addressTable.find((entry) => entry.symbol === symbol);
-  return row ? row.address.toLowerCase() : null;
-}
-
 /** The latest in-window rebase from the real stETH token — the last candidate for
  * a reward discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
 function lastRebaseInWindow(manifest: Manifest, stETH: string): RebaseEvent | null {
@@ -253,8 +247,8 @@ export function recon(
   // already filters emitters, but recon must not re-trust a hand-authored,
   // validator-passing manifest that injects a Transfer from a foreign contract
   // (SEC-2). A manifest lacking the tokens is malformed for this engine.
-  const wstETH = manifestTokenAddress(manifest, "wstETH");
-  const stETH = manifestTokenAddress(manifest, "stETH");
+  const wstETH = findTokenAddress(manifest.addressTable, "wstETH");
+  const stETH = findTokenAddress(manifest.addressTable, "stETH");
   if (wstETH === null || stETH === null) {
     return err({
       code: "missing-token-address",

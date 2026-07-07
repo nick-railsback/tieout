@@ -66,7 +66,11 @@ type NormalizedEvent = {
   readonly obj: Record<string, string>;
 };
 
-function findTokenAddress(table: readonly ManifestAddress[], symbol: string): string | null {
+/** Resolve a token symbol to its lowercased address from a manifest address
+ * table (AD-5), or `null` when absent. The ONE resolver shared by `derive` and
+ * `recon` (via `manifest.addressTable`), so the two callers cannot drift into
+ * divergent lookup rules. */
+export function findTokenAddress(table: readonly ManifestAddress[], symbol: string): string | null {
   const row = table.find((entry) => entry.symbol === symbol);
   return row ? row.address.toLowerCase() : null;
 }
