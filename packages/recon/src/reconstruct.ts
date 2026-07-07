@@ -1,5 +1,6 @@
 import { type PublicClient } from "viem";
 import { getFeedAddress, getTokenAddress } from "@tieout/addresses";
+import { DATA_CHAIN_ID } from "./filter.ts";
 import { TOKEN_REBASED_EVENT, TOKEN_REBASED_TOPIC0 } from "./events.ts";
 import { type RawLog } from "./rawlog.ts";
 import {
@@ -33,8 +34,16 @@ import { type Result, err, ok } from "./result.ts";
 /** The embedded AD-5 token rows (feed lives in `priceObservation`, not here). */
 export function mainnetTokenTable(): ManifestAddress[] {
   return [
-    { chainId: 1n, symbol: "wstETH", address: getTokenAddress(1, "wstETH") },
-    { chainId: 1n, symbol: "stETH", address: getTokenAddress(1, "stETH") },
+    {
+      chainId: BigInt(DATA_CHAIN_ID),
+      symbol: "wstETH",
+      address: getTokenAddress(DATA_CHAIN_ID, "wstETH"),
+    },
+    {
+      chainId: BigInt(DATA_CHAIN_ID),
+      symbol: "stETH",
+      address: getTokenAddress(DATA_CHAIN_ID, "stETH"),
+    },
   ];
 }
 
@@ -108,7 +117,7 @@ export async function reconstructManifest(
     );
 
     // In-window rebase observations (decoded from the raw logs we already fetched).
-    const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(1, "stETH"));
+    const inWindow = collectInWindowRebases(rawLogs, getTokenAddress(DATA_CHAIN_ID, "stETH"));
     if (!inWindow.ok) return inWindow;
     const inWindowRebases = inWindow.value;
 
@@ -129,7 +138,7 @@ export async function reconstructManifest(
     const pins = await capturePins(client, params.startBlock, params.endBlock);
     const price = await resolvePriceObservation(
       client,
-      getFeedAddress(1, "stETH/USD"),
+      getFeedAddress(DATA_CHAIN_ID, "stETH/USD"),
       params.endBlock,
       pins.endTimestamp,
     );

@@ -14,6 +14,7 @@
 import { createPublicClient, webSocket } from "viem";
 import { mainnet } from "viem/chains";
 import { getTokenAddress, getUtilityAddress } from "@tieout/addresses";
+import { DATA_CHAIN_ID } from "@tieout/recon";
 import { WSTETH_ABI } from "./abi.ts";
 import {
   LIVE_READ_FAILURE_LIMIT,
@@ -23,8 +24,10 @@ import {
 } from "./config.ts";
 import type { LivePositionInput } from "./view.ts";
 
-/** wstETH lives on mainnet (chainId 1) — the data chain. */
-const DATA_CHAIN_ID = 1;
+// The data chain (Ethereum mainnet, chainId 1) is single-sourced from
+// `@tieout/recon` (`DATA_CHAIN_ID`) — the same constant `verify`/`reconstruct`
+// use — so the live wstETH reads can never target a different chain than the
+// derivation (review #7).
 
 export type LiveStatus = "connecting" | "live" | "reconnecting" | "disconnected";
 

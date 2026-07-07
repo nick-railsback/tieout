@@ -1,6 +1,6 @@
 import { type Address, type PublicClient } from "viem";
 import { chunkRange } from "./chunks.ts";
-import { LOG_FILTERS } from "./filter.ts";
+import { DATA_CHAIN_ID, LOG_FILTERS } from "./filter.ts";
 import { getTokenAddress } from "@tieout/addresses";
 import { TOKEN_REBASED_EVENT } from "./events.ts";
 import { type PriceObservation, type RatePoint } from "./manifest.ts";
@@ -154,7 +154,7 @@ export async function fetchRebaseAt(
   client: PublicClient,
   block: bigint,
 ): Promise<RebaseObservation | null> {
-  const stETH = getTokenAddress(1, "stETH");
+  const stETH = getTokenAddress(DATA_CHAIN_ID, "stETH");
   const logs = await client.getLogs({
     address: stETH,
     event: TOKEN_REBASED_EVENT,
@@ -175,7 +175,7 @@ export async function fetchRebaseAt(
 /** Read `wstETH.stEthPerToken()` at a pinned block (archive). */
 async function stEthPerTokenAt(client: PublicClient, block: bigint): Promise<bigint> {
   return client.readContract({
-    address: getTokenAddress(1, "wstETH"),
+    address: getTokenAddress(DATA_CHAIN_ID, "wstETH"),
     abi: WSTETH_ABI,
     functionName: "stEthPerToken",
     blockNumber: block,
