@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { encodeAbiParameters, encodeEventTopics, type Hex } from "viem";
+import { encodeAbiParameters, encodeEventTopics, type AbiEvent, type Hex } from "viem";
 import {
   type DerivationInput,
+  LOG_FILTERS,
   TRANSFER_EVENT,
   TOKEN_REBASED_EVENT,
   derive,
@@ -157,4 +158,29 @@ test("AD-9: the Ponder config indexes exactly the shared pinned slice", async ()
     assert.equal(source.startBlock, start);
     assert.equal(source.endBlock, end);
   }
+});
+
+// Code review 2026-07-07, finding #3: filter.ts LOG_FILTERS is the ONE fetch
+// universe both adapters must cover (AD-9). ponder.config previously re-paired
+// (address, event) by hand, so a new LOG_FILTERS entry would widen verify's fetch
+// while Ponder silently kept the old universe — the manifest-splitting divergence
+// AD-9 forbids. Bind them: the (address, event) set the Ponder config indexes must
+// EQUAL the LOG_FILTERS set. A new filter with no matching Ponder contract (or a
+// stray Ponder contract) fails HERE, loudly — never silently at fetch time.
+test("AD-9: the Ponder config's fetch universe equals LOG_FILTERS (review #3)", async () => {
+  process.env.PONDER_RPC_URL_1 ??= "https://archive.example/key";
+  const { default: config } = await import("../ponder.config.ts");
+
+  const pairKey = (address: string, eventName: string): string =>
+    `${address.toLowerCase()}|${eventName}`;
+
+  const ponderUniverse = new Set<string>();
+  for (const source of Object.values(config.contracts)) {
+    for (const event of source.abi as readonly AbiEvent[]) {
+      ponderUniverse.add(pairKey(source.address as string, event.name));
+    }
+  }
+  const filterUniverse = new Set(LOG_FILTERS.map((f) => pairKey(f.address, f.event.name)));
+
+  assert.deepEqual(ponderUniverse, filterUniverse);
 });
