@@ -7,7 +7,7 @@ paradigm: 'functional core / imperative shell (ports-and-adapters at the seam)'
 scope: 'Tieout MVP thin slice: deterministic onchain reconciliation engine + `tieout verify` (one public wstETH address, 30-day finalized window)'
 status: final
 created: '2026-07-01'
-updated: '2026-07-06'
+updated: '2026-07-07'
 binds:
   - recon
   - indexer
@@ -89,7 +89,7 @@ Stable ascending IDs; never renumbered or reused. These rules are deliberately b
 ### AD-6 — Canonical rate curve = event-derived
 - **Binds:** `derivation` rate input, `verify`
 - **Prevents:** the verifier needing an archive node; divergent authoritative rate sources; boundary/rounding false-failures
-- **Rule:** the authoritative rate curve is a step function derived from Lido `TokenRebased` fields — stETH-per-wstETH (1e18) = `postTotalEther * 1e18 / postTotalShares` at each rebase. The rate in effect at a position `p = (block, txIndex, logIndex)` is the value from the most recent rebase with position `≤ p`; the curve is seeded from the last rebase at or before `startBlock`. The archive cross-check (`wstETH.stEthPerToken()`; mock `convertToAssets(1e18)`) is read **at rebase blocks, post-report state**, and asserted **exactly equal** to the event-derived value there; between rebases the archive read may drift by share-mint rounding and is not equality-checked.
+- **Rule:** the authoritative rate curve is a step function derived from Lido `TokenRebased` fields — stETH-per-wstETH (1e18) = `postTotalEther * 1e18 / postTotalShares` at each rebase. The rate in effect at a position `p = (block, txIndex, logIndex)` is the value from the most recent rebase with position `≤ p`; the curve is seeded from the last rebase at or before `startBlock`. **When a single block carries more than one rebase, the curve takes the _last_ observation in that block (its end-of-block state)** — matching both the seed fetch (`logs[last]`) and the post-report archive read; a second implementation keeping the first observation would split the hash. The archive cross-check (`wstETH.stEthPerToken()`; mock `convertToAssets(1e18)`) is read **at rebase blocks, post-report state**, and asserted **exactly equal** to the event-derived value there; between rebases the archive read may drift by share-mint rounding and is not equality-checked. (The same-block corner where the event's mid-block post-state and the end-of-block archive read could diverge is a latent, astronomically-rare edge — recorded, never absorbed by a tolerance.)
 
 ### AD-7 — The manifest is the boundary contract (fixed schema)
 - **Binds:** the recon/shell seam
