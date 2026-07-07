@@ -54,16 +54,21 @@ export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
  * the everyday always-green signal is the live position + the closing-shares
  * tie-out, not a hand-built reconciled report. Each ships its real `reportHash`
  * as data so the web never re-hashes (AD-13). */
+// Gateway-RELATIVE asset paths (no leading "/"): native fetch resolves each
+// against document.baseURI, so under a path-style IPFS gateway
+// (https://ipfs.io/ipfs/<CID>/) they land under the CID directory rather than at
+// the gateway root. A root-absolute "/report.*" would 404 there — the exact
+// deployment vite.config.ts `base: "./"` targets (AC-6.9; code-review #2).
 export const REPORTS = {
   golden: {
     label: "Golden — reward break",
-    json: "/report.golden.json",
-    hash: "/report.golden.hash.txt",
+    json: "./report.golden.json",
+    hash: "./report.golden.hash.txt",
   },
   slice: {
     label: "Slice — injected discrepancy",
-    json: "/report.slice.json",
-    hash: "/report.slice.hash.txt",
+    json: "./report.slice.json",
+    hash: "./report.slice.hash.txt",
   },
 } as const;
 

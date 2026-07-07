@@ -150,6 +150,40 @@ test("UX-3: the tie-out glyph is a role=img span with a text label, not a bare c
   assert.match(glyph!.attrs.get("aria-label") ?? "", /ties out|does not tie out/);
 });
 
+// Code review 2026-07-07, finding #2: the report + hash assets were fetched via
+// ROOT-ABSOLUTE paths ("/report.*.json"), which a path-style IPFS gateway
+// (https://ipfs.io/ipfs/<CID>/) resolves against the gateway ROOT — dropping the
+// CID directory and 404-ing every report. That is exactly the deployment
+// vite.config.ts `base: "./"` targets (AC-6.9). The paths must be gateway-relative
+// so native fetch resolves them against document.baseURI under the CID directory.
+test("review #2: report assets fetch under a path-style IPFS gateway CID, not the gateway root", async () => {
+  const GATEWAY = "https://ipfs.io/ipfs/bafyCID/"; // a path-style gateway directory URL
+  const fetched: string[] = [];
+  const dom = new FakeDom();
+  const base = makeDeps(dom);
+  const shell = createShell({
+    ...base,
+    fetchFn: (url: string): Promise<Response> => {
+      fetched.push(url);
+      return base.fetchFn(url);
+    },
+  });
+
+  await shell.loadReport("golden");
+
+  assert.ok(fetched.length >= 2, "both the report json and its hash should be fetched");
+  for (const url of fetched) {
+    // The browser resolves each fetch() argument against the document base URL.
+    // Under a path-style gateway that base is the CID directory; a root-absolute
+    // path escapes it to the gateway root (the bug this finding named).
+    const resolved = new URL(url, GATEWAY).href;
+    assert.ok(
+      resolved.startsWith(GATEWAY),
+      `report asset "${url}" escaped the gateway CID dir → ${resolved} (finding #2)`,
+    );
+  }
+});
+
 test("UX-2: an initial load failure clears the hard-coded 'connecting…' badge", async () => {
   const dom = new FakeDom();
   // The static markup ships live-status as "connecting…" (index.html); simulate it.
