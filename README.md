@@ -4,10 +4,11 @@
 > can an outsider check that without trusting us?**
 > Tieout answers that question with cryptographic force.
 
-**Status:** 🟢 v0.1.0 release in progress. The engine, verifier, onchain anchor, USD
-valuation, and web surface are built and tested (batches 1–5 of 6, plus two full health
-audits with all 53 findings remediated). The release batch — Base deployment and IPFS/ENS
-hosting — is underway. Not legal, financial, or tax advice.
+**Status:** 🟢 **v0.1.0 — released.** The engine, verifier, onchain anchor, USD
+valuation, and web surface are built, tested, and deployed — the `AttestationRegistry` is
+live and source-verified on Base mainnet with the demo report anchored onchain (batches 1–6
+of 6, plus two full health audits with all 53 findings remediated). The web surface is served
+at **[tieout.eth.limo](https://tieout.eth.limo)**. Not legal, financial, or tax advice.
 
 ---
 
