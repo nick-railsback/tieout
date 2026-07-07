@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
 import { type Result, ok } from "./result.ts";
 import {
   type FieldError,
@@ -90,20 +90,15 @@ export type PriceObservation = {
 
 const EVENT_TYPES: readonly string[] = ["Transfer", "TokenRebased"];
 
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
-
 function validateEvent(raw: unknown, path: string): Result<ManifestEvent, FieldError> {
   if (!isPlainObject(raw)) return fail("bad-type", `${path}: expected an object`, path);
   const type = raw["type"];
   if (typeof type !== "string" || !EVENT_TYPES.includes(type)) {
-    return fail("bad-event-type", `${path}.type: must be one of ${EVENT_TYPES.join(", ")}`, `${path}.type`);
+    return fail(
+      "bad-event-type",
+      `${path}.type: must be one of ${EVENT_TYPES.join(", ")}`,
+      `${path}.type`,
+    );
   }
 
   const address = parseLowerAddress(raw["address"], `${path}.address`);
@@ -210,7 +205,8 @@ export function validateManifest(input: unknown): Result<Manifest, FieldError> {
 
   // rateCurve[]
   const rateInput = input["rateCurve"];
-  if (!Array.isArray(rateInput)) return fail("bad-type", "rateCurve: expected an array", "rateCurve");
+  if (!Array.isArray(rateInput))
+    return fail("bad-type", "rateCurve: expected an array", "rateCurve");
   const rateCurve: RatePoint[] = [];
   for (let i = 0; i < rateInput.length; i++) {
     const path = `rateCurve[${i}]`;
@@ -224,13 +220,18 @@ export function validateManifest(input: unknown): Result<Manifest, FieldError> {
   }
   for (let i = 1; i < rateCurve.length; i++) {
     if (rateCurve[i - 1]!.rebaseBlock >= rateCurve[i]!.rebaseBlock) {
-      return fail("rate-order", `rateCurve[${i}]: must be strictly ordered by rebaseBlock (AD-4)`, `rateCurve[${i}]`);
+      return fail(
+        "rate-order",
+        `rateCurve[${i}]: must be strictly ordered by rebaseBlock (AD-4)`,
+        `rateCurve[${i}]`,
+      );
     }
   }
 
   // addressTable[]
   const tableInput = input["addressTable"];
-  if (!Array.isArray(tableInput)) return fail("bad-type", "addressTable: expected an array", "addressTable");
+  if (!Array.isArray(tableInput))
+    return fail("bad-type", "addressTable: expected an array", "addressTable");
   const addressTable: ManifestAddress[] = [];
   for (let i = 0; i < tableInput.length; i++) {
     const path = `addressTable[${i}]`;
@@ -273,7 +274,10 @@ export function validateManifest(input: unknown): Result<Manifest, FieldError> {
   if (!answer.ok) return answer;
   const decimals = parseNonNegInt(priceInput["decimals"], "priceObservation.decimals");
   if (!decimals.ok) return decimals;
-  const observedBlock = parseNonNegInt(priceInput["observedBlock"], "priceObservation.observedBlock");
+  const observedBlock = parseNonNegInt(
+    priceInput["observedBlock"],
+    "priceObservation.observedBlock",
+  );
   if (!observedBlock.ok) return observedBlock;
 
   return ok({

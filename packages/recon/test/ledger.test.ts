@@ -13,8 +13,18 @@ function validLedger(): Record<string, unknown> {
     asset: "wstETH",
     window: { startBlock: "21000000", endBlock: "21100000" },
     lots: [
-      { lotId: "L1", acquisitionBlock: "21010000", shares: "100000000000000000000", costBasisUsd: "250000000000" },
-      { lotId: "L2", acquisitionBlock: "21060000", shares: "50000000000000000000", costBasisUsd: "130000000000" },
+      {
+        lotId: "L1",
+        acquisitionBlock: "21010000",
+        shares: "100000000000000000000",
+        costBasisUsd: "250000000000",
+      },
+      {
+        lotId: "L2",
+        acquisitionBlock: "21060000",
+        shares: "50000000000000000000",
+        costBasisUsd: "130000000000",
+      },
     ],
     bookedReward: "1000000000000000000",
   };
@@ -67,6 +77,24 @@ test("rejects a lot acquired after the window closes (AC-1.2.b)", () => {
   expectReject(bad, "acquisition-after-window");
 });
 
+// REL-4 — the engine derives `onchain` purely from in-window transfer flows and
+// has no opening-balance concept, so a lot acquired BEFORE the window opens can
+// never appear in an in-window transfer: it would guarantee a closingShares
+// discrepancy (and could drive onchainShares negative). A typed input error
+// beats a red report that reflects the model boundary, not the books.
+test("rejects a lot acquired before the window opens (REL-4)", () => {
+  const bad = validLedger();
+  (bad["lots"] as Array<Record<string, unknown>>)[0]!["acquisitionBlock"] = "20999999";
+  expectReject(bad, "acquisition-before-window");
+});
+
+test("accepts a lot acquired exactly at startBlock (inclusive lower bound, REL-4)", () => {
+  const edge = validLedger();
+  (edge["lots"] as Array<Record<string, unknown>>)[0]!["acquisitionBlock"] = "21000000";
+  const result = validateLedger(edge);
+  assert.equal(result.ok, true);
+});
+
 test("rejects lots not ordered by (acquisitionBlock, lotId) (AC-1.2.b, AD-4)", () => {
   const bad = validLedger();
   const lots = bad["lots"] as Array<Record<string, unknown>>;
@@ -81,8 +109,18 @@ test("ledgerHash is stable and independent of input key order (AC-1.2.c)", () =>
   const shuffled = {
     bookedReward: "1000000000000000000",
     lots: [
-      { costBasisUsd: "250000000000", shares: "100000000000000000000", acquisitionBlock: "21010000", lotId: "L1" },
-      { shares: "50000000000000000000", lotId: "L2", costBasisUsd: "130000000000", acquisitionBlock: "21060000" },
+      {
+        costBasisUsd: "250000000000",
+        shares: "100000000000000000000",
+        acquisitionBlock: "21010000",
+        lotId: "L1",
+      },
+      {
+        shares: "50000000000000000000",
+        lotId: "L2",
+        costBasisUsd: "130000000000",
+        acquisitionBlock: "21060000",
+      },
     ],
     window: { endBlock: "21100000", startBlock: "21000000" },
     asset: "wstETH",

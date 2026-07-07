@@ -1,11 +1,41 @@
 import { ponder } from "ponder:registry";
+import { rawLog } from "ponder:schema";
+import { ponderEventToRawLog } from "./adapter.ts";
 
 /**
- * SCAFFOLD ONLY (Batch 1). Registers the block source declared in
- * ponder.config.ts so the `ponder:registry` virtual module and its event names
- * type-check. The handler is intentionally a no-op — the shared derivation
- * (raw logs → manifest, AD-9) lands in Batch 2 (Story 2.2).
+ * Build the accumulated-row values from a Ponder log event via the shared
+ * adapter (number → bigint at the boundary, AD-2).
  */
-ponder.on("ChainMeta:block", async () => {
-  // Batch 2: accumulate normalized logs into the manifest derivation here.
+function rowFor(event: Parameters<typeof ponderEventToRawLog>[0] & { id: string }) {
+  const raw = ponderEventToRawLog(event);
+  return {
+    id: event.id,
+    address: raw.address,
+    topics: [...raw.topics],
+    data: raw.data,
+    blockNumber: raw.blockNumber,
+    txIndex: raw.txIndex,
+    logIndex: raw.logIndex,
+    blockHash: raw.blockHash,
+    txHash: raw.txHash,
+  };
+}
+
+/**
+ * Accumulate each normalized log idempotently (keyed by `event.id`). Ponder
+ * re-runs handlers on reorgs, so `onConflictDoNothing` keeps accumulation
+ * deterministic + idempotent.
+ *
+ * NOTE: this package is a write-only accumulator today. The read-back that would
+ * feed these `raw_log` rows into the ONE shared `derive` for whole-range
+ * manifest reconstruction (after `/ready`, historical sync complete) is NOT YET
+ * IMPLEMENTED — deferred, see README ("Not yet implemented"). Ponder is NOT on
+ * the verify path either way (AD-9).
+ */
+ponder.on("WstETH:Transfer", async ({ event, context }) => {
+  await context.db.insert(rawLog).values(rowFor(event)).onConflictDoNothing();
+});
+
+ponder.on("StETH:TokenRebased", async ({ event, context }) => {
+  await context.db.insert(rawLog).values(rowFor(event)).onConflictDoNothing();
 });

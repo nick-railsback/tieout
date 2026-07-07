@@ -1,5 +1,5 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
 import { type Result, ok } from "./result.ts";
 import { LEDGER_SCHEMA_VERSION } from "./version.ts";
 import {
@@ -43,22 +43,14 @@ export type Lot = {
 /** The reconciled-token identifier is a fixed constant set for the MVP. */
 export const ALLOWED_ASSETS: readonly string[] = ["wstETH"];
 
-/** Compare two strings by UTF-16 code unit (matches the canonical key order). */
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
-
 /**
  * Validate an untrusted, JSON-parsed ledger into a typed {@link Ledger}. This
  * is the *ledger-only* validator (AC-1.2.a/b): it rejects a duplicate `lotId`,
  * a non-lowercase `subject`, a float, a JSON-number integer, and any lot whose
- * `acquisitionBlock` is after `endBlock`, and it enforces `(acquisitionBlock,
- * lotId)` lot ordering (AD-4/AD-20).
+ * `acquisitionBlock` falls OUTSIDE `[startBlock, endBlock]`, and it enforces
+ * `(acquisitionBlock, lotId)` lot ordering (AD-4/AD-20). The window must cover
+ * each lot's acquisition: `recon` models no opening balance and derives `onchain`
+ * from in-window transfers only, so a pre-window lot could never reconcile (REL-4).
  *
  * The `ledger.window == report pins` equality (AC-1.2.b, AD-3) is deliberately
  * NOT here — it needs the *manifest's* pins and so is a recon-boundary
@@ -123,7 +115,11 @@ export function validateLedger(input: unknown): Result<Ledger, FieldError> {
     if (!costBasisUsd.ok) return costBasisUsd;
 
     if (seen.has(lotId.value)) {
-      return fail("duplicate-lot", `${path}.lotId: duplicate lotId "${lotId.value}"`, `${path}.lotId`);
+      return fail(
+        "duplicate-lot",
+        `${path}.lotId: duplicate lotId "${lotId.value}"`,
+        `${path}.lotId`,
+      );
     }
     seen.add(lotId.value);
 
@@ -131,6 +127,19 @@ export function validateLedger(input: unknown): Result<Ledger, FieldError> {
       return fail(
         "acquisition-after-window",
         `${path}.acquisitionBlock: a lot cannot be acquired after the window closes (AD-20)`,
+        `${path}.acquisitionBlock`,
+      );
+    }
+    if (acquisitionBlock.value < startBlock.value) {
+      // The engine derives `onchain` from in-window transfer flows and models no
+      // opening balance, so a pre-window lot has no in-window transfer to derive
+      // from — it would force a guaranteed closingShares discrepancy (and could
+      // drive onchainShares negative). Reject it as a typed input error rather
+      // than emit a red report that reflects the model boundary, not the books
+      // (REL-4). The window must cover each lot's acquisition.
+      return fail(
+        "acquisition-before-window",
+        `${path}.acquisitionBlock: a lot acquired before the window opens has no in-window transfer to derive from — the window must cover the lot's acquisition (AD-20)`,
         `${path}.acquisitionBlock`,
       );
     }

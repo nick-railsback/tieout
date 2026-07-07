@@ -19,3 +19,7 @@ catalog:
   ponder: 0.16.6
   hono: ^4.5.0
   "@types/node": ^24.0.0
+  # apps/web bundler (Batch 5). Off the canonical hash path — the web never
+  # hashes, so the bundler cannot affect NFR-0; a caret range mirrors the other
+  # non-core dev deps (hono/@types/node).
+  vite: ^6.0.0

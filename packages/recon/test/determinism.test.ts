@@ -25,7 +25,9 @@ const goldenReportBytes = readFileSync(join(GOLDEN, "report.json"));
 const goldenHash = readFileSync(join(GOLDEN, "reportHash.txt"), "utf8").trim();
 
 function loadFixtures(): { manifest: Manifest; ledger: Ledger } {
-  const manifest = validateManifest(JSON.parse(readFileSync(join(GOLDEN, "manifest.json"), "utf8")));
+  const manifest = validateManifest(
+    JSON.parse(readFileSync(join(GOLDEN, "manifest.json"), "utf8")),
+  );
   const ledger = validateLedger(JSON.parse(readFileSync(join(GOLDEN, "ledger.json"), "utf8")));
   assert.ok(manifest.ok && ledger.ok, "golden fixtures must validate");
   if (!manifest.ok || !ledger.ok) throw new Error("unreachable");
@@ -47,7 +49,10 @@ test("AC-1.6.a — N in-process runs are byte-identical and match the committed 
     const bytes = canonicalBytes(canonicalReport(report));
     const hash = canonicalHash(canonicalReport(report));
     assert.equal(hash, goldenHash, `run ${i}: reportHash drifted from golden`);
-    assert.ok(Buffer.from(bytes).equals(goldenReportBytes), `run ${i}: report bytes drifted from golden`);
+    assert.ok(
+      Buffer.from(bytes).equals(goldenReportBytes),
+      `run ${i}: report bytes drifted from golden`,
+    );
   }
 });
 

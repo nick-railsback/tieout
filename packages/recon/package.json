@@ -1,6 +1,7 @@
 {
   "name": "@tieout/recon",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "description": "Pure, deterministic wstETH reconciliation engine — canonicalizer + keccak binding, ledger/manifest contracts, and recon(manifest, ledger) -> (report, reportHash).",
@@ -12,15 +13,22 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "tieout-verify": "./dist/bin/verify.js",
+    "tieout-pin-slice": "./dist/bin/pin-slice.js"
+  },
   "files": ["dist", "fixtures"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
     "recon": "node --disable-warning=ExperimentalWarning src/bin/recon-run.ts",
+    "verify": "node --disable-warning=ExperimentalWarning src/bin/verify.ts",
+    "gen:slice": "node --disable-warning=ExperimentalWarning src/bin/pin-slice.ts",
     "gen:golden": "node --disable-warning=ExperimentalWarning src/bin/recon-run.ts fixtures/golden/manifest.json fixtures/golden/ledger.json fixtures/golden/report.json"
   },
   "dependencies": {
+    "@tieout/addresses": "workspace:*",
     "viem": "catalog:"
   },
   "devDependencies": {

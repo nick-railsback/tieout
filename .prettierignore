@@ -1,0 +1,24 @@
+# Untracked local tooling (excluded from the repo via .git/info/exclude).
+_bmad/
+_bmad-output/
+.claude/
+
+# Build output, generated files, and vendored code — never formatter-owned.
+**/dist/
+**/out/
+**/lib/
+**/broadcast/
+**/node_modules/
+**/ponder-env.d.ts
+
+# This formatter owns the TypeScript surface only. Byte-exact NFR-0 fixtures and
+# canonical JSON must never be reflowed; Solidity is owned by `forge fmt`; HTML,
+# CI/workflow YAML, and docs stay hand-managed.
+**/fixtures/
+**/*.json
+**/*.sol
+**/*.md
+**/*.html
+**/*.yml
+**/*.yaml
+.github/

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tieout — Architecture Deck</title>
+<style>
+  :root{
+    --bg:#0a0e13;
+    --bg2:#0f151d;
+    --bg3:#161d27;
+    --line:#232c38;
+    --line2:#2c3745;
+    --text:#e6edf3;
+    --muted:#94a3b4;
+    --faint:#68758a;
+    --accent:#5eead4;
+    --accent-2:#37b6a5;
+    --accent-dim:rgba(94,234,212,.10);
+    --accent-line:rgba(94,234,212,.35);
+    --warn:#f0b429;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--ui);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  ::selection{background:rgba(94,234,212,.25);}
+
+  /* ---------- layout ---------- */
+  .app{
+    display:grid;
+    grid-template-columns:288px 1fr;
+    height:100vh;
+    width:100vw;
+  }
+  .sidebar{
+    background:var(--bg2);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .brand{
+    padding:22px 22px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .brand .logo{
+    display:flex;align-items:center;gap:10px;
+    font-weight:700;font-size:19px;letter-spacing:-.01em;
+  }
+  .brand .logo .dot{
+    width:11px;height:11px;border-radius:3px;
+    background:var(--accent);
+    box-shadow:0 0 14px rgba(94,234,212,.55);
+  }
+  .brand .tag{
+    margin-top:8px;color:var(--muted);font-size:12.5px;line-height:1.4;
+  }
+  .navlist{
+    list-style:none;margin:0;padding:12px 10px;
+    overflow-y:auto;flex:1;min-height:0;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:12px;
+    width:100%;text-align:left;
+    background:none;border:1px solid transparent;border-radius:9px;
+    color:var(--muted);
+    font-family:var(--ui);font-size:13.5px;
+    padding:9px 11px;margin:2px 0;cursor:pointer;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .nav-item .num{
+    font-family:var(--mono);font-size:11.5px;
+    color:var(--faint);width:20px;flex:none;text-align:right;
+  }
+  .nav-item:hover{background:var(--bg3);color:var(--text);}
+  .nav-item.active{
+    background:var(--accent-dim);
+    border-color:var(--accent-line);
+    color:var(--text);
+  }
+  .nav-item.active .num{color:var(--accent);}
+  .nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .sidebar-foot{
+    padding:14px 20px;border-top:1px solid var(--line);
+    color:var(--faint);font-size:11.5px;font-family:var(--mono);
+  }
+
+  .main{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;}
+  .topbar{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 28px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--bg2),var(--bg));
+  }
+  .nav-toggle{
+    display:none;background:var(--bg3);border:1px solid var(--line2);
+    color:var(--text);border-radius:8px;padding:7px 10px;cursor:pointer;
+    font-size:15px;line-height:1;
+  }
+  .topbar .eyebrow{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.14em;
+  }
+  .topbar .spacer{flex:1;}
+  .counter{
+    font-family:var(--mono);font-size:13px;color:var(--muted);
+    background:var(--bg3);border:1px solid var(--line);
+    padding:4px 11px;border-radius:20px;
+  }
+  .counter b{color:var(--accent);font-weight:600;}
+  .progress-track{height:2px;background:var(--line);}
+  .progress-bar{
+    height:2px;background:var(--accent);width:8%;
+    box-shadow:0 0 10px rgba(94,234,212,.6);
+    transition:width .35s ease;
+  }
+
+  /* ---------- stage & slides ---------- */
+  .stage{
+    position:relative;flex:1;min-height:0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,.028) 1px, transparent 0);
+    background-size:26px 26px;
+  }
+  .slide{
+    position:absolute;inset:0;
+    display:flex;overflow:auto;
+    padding:44px 56px 40px;
+    opacity:0;visibility:hidden;
+    transition:opacity .4s ease, visibility 0s linear .4s;
+  }
+  .slide.active{opacity:1;visibility:visible;transition:opacity .45s ease;}
+  .slide-inner{margin:auto;width:100%;max-width:1120px;}
+  .slide.active .slide-inner{animation:rise .5s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+
+  /* ---------- type & primitives ---------- */
+  .kicker{
+    font-family:var(--mono);font-size:12.5px;color:var(--accent);
+    text-transform:uppercase;letter-spacing:.16em;margin:0 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .kicker::before{content:"";width:26px;height:1px;background:var(--accent);opacity:.7;}
+  h1{font-size:64px;line-height:1.02;letter-spacing:-.03em;margin:0 0 6px;font-weight:750;}
+  h2{font-size:34px;line-height:1.12;letter-spacing:-.02em;margin:0 0 20px;font-weight:700;}
+  h3{font-size:16px;margin:0 0 8px;font-weight:650;letter-spacing:-.01em;}
+  p{margin:0 0 14px;color:var(--text);}
+  .lead{font-size:20px;color:var(--muted);line-height:1.5;max-width:820px;}
+  .muted{color:var(--muted);}
+  .accent{color:var(--accent);}
+  code,.mono{font-family:var(--mono);font-size:.9em;}
+  code{
+    background:var(--bg3);border:1px solid var(--line);
+    padding:1.5px 6px;border-radius:5px;color:var(--accent);
+    font-size:.86em;white-space:nowrap;
+  }
+  .hash{color:var(--accent);word-break:break-all;}
+  strong{color:var(--text);font-weight:650;}
+
+  /* callout / nfr */
+  .nfr{
+    margin-top:26px;background:var(--accent-dim);
+    border:1px solid var(--accent-line);border-left:3px solid var(--accent);
+    border-radius:12px;padding:22px 26px;max-width:900px;
+  }
+  .nfr .label{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:8px;
+  }
+  .nfr .body{font-size:19px;line-height:1.5;color:var(--text);}
+  .nfr .body code{font-size:.82em;}
+
+  /* cards */
+  .grid{display:grid;gap:16px;margin-top:8px;}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
+  .card{
+    background:var(--bg2);border:1px solid var(--line);
+    border-radius:12px;padding:18px 20px;
+  }
+  .card.hi{border-color:var(--accent-line);background:linear-gradient(180deg,var(--accent-dim),transparent);}
+  .card .tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--faint);
+  }
+  .card h3 .ad{
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--accent-line);border-radius:5px;
+    padding:1px 6px;margin-right:8px;
+  }
+  .card p{font-size:14px;color:var(--muted);margin:6px 0 0;line-height:1.5;}
+  .card p strong{color:var(--text);}
+
+  ul.clean{margin:6px 0 0;padding:0;list-style:none;}
+  ul.clean li{
+    position:relative;padding:7px 0 7px 24px;
+    border-bottom:1px solid var(--line);color:var(--muted);font-size:15px;
+  }
+  ul.clean li:last-child{border-bottom:none;}
+  ul.clean li::before{
+    content:"";position:absolute;left:2px;top:15px;
+    width:7px;height:7px;border-radius:2px;background:var(--accent);opacity:.85;
+  }
+  ul.clean li strong{color:var(--text);}
+  ul.clean li .m{font-family:var(--mono);color:var(--accent);font-size:.9em;}
+
+  /* two-column */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start;}
+  .cols.wide-left{grid-template-columns:1.15fr .85fr;}
+
+  /* table */
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);}
+  th{color:var(--faint);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;}
+  td{color:var(--muted);}
+  td:first-child{color:var(--text);font-weight:550;}
+  td .mono{color:var(--accent);}
+  tbody tr:hover td{background:rgba(255,255,255,.015);}
+
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .chip{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    background:var(--bg3);border:1px solid var(--line);
+    border-radius:6px;padding:4px 9px;
+  }
+  .chip.on{color:var(--accent);border-color:var(--accent-line);background:var(--accent-dim);}
+
+  .not{color:var(--warn);}
+  .pill-not{
+    display:inline-block;font-family:var(--mono);font-size:11px;
+    color:var(--warn);border:1px solid rgba(240,180,41,.4);
+    background:rgba(240,180,41,.08);border-radius:5px;padding:1px 7px;margin-right:6px;
+  }
+
+  /* diagram */
+  .diagram-wrap{
+    margin-top:10px;background:var(--bg2);
+    border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;
+  }
+  .diagram{width:100%;height:auto;display:block;}
+  .cap{margin-top:10px;color:var(--faint);font-size:12.5px;font-family:var(--mono);text-align:center;}
+
+  /* svg classes */
+  .d-region{fill:rgba(255,255,255,.014);stroke:var(--line2);stroke-width:1.4;stroke-dasharray:5 5;}
+  .d-box{fill:var(--bg3);stroke:var(--accent);stroke-width:1.7;}
+  .d-box-alt{fill:var(--accent-dim);stroke:var(--accent);stroke-width:2.4;}
+  .d-box-mut{fill:var(--bg3);stroke:var(--line2);stroke-width:1.6;}
+  .d-arrow{stroke:var(--accent);stroke-width:1.9;fill:none;}
+  .d-arrow-mut{stroke:var(--faint);stroke-width:1.7;fill:none;}
+  .d-track{stroke:var(--line2);stroke-width:12;fill:none;stroke-linecap:round;}
+  .d-needle{stroke:var(--accent);stroke-width:4;fill:none;stroke-linecap:round;}
+  .d-tick{stroke:var(--muted);stroke-width:2;}
+  .d-lbl{fill:var(--text);font-family:var(--ui);font-weight:650;font-size:15px;}
+  .d-lbl-sm{fill:var(--text);font-family:var(--ui);font-weight:650;font-size:13px;}
+  .d-sub{fill:var(--muted);font-family:var(--mono);font-size:12px;}
+  .d-sub-sm{fill:var(--muted);font-family:var(--mono);font-size:11px;}
+  .d-region-lbl{fill:var(--muted);font-family:var(--ui);font-weight:700;font-size:11.5px;letter-spacing:.06em;}
+  .d-note{fill:var(--accent);font-family:var(--mono);font-size:12px;}
+  .d-note-b{fill:var(--accent);font-family:var(--mono);font-weight:600;font-size:14px;}
+  .d-warn{fill:var(--warn);font-family:var(--mono);font-size:12px;}
+  .d-tk{fill:var(--faint);font-family:var(--mono);font-size:12px;letter-spacing:.1em;}
+  .ctr{text-anchor:middle;}
+  .end{text-anchor:end;}
+
+  /* ---------- controls ---------- */
+  .controls{
+    display:flex;align-items:center;gap:14px;
+    padding:12px 28px;border-top:1px solid var(--line);
+    background:var(--bg2);
+  }
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--bg3);border:1px solid var(--line2);
+    color:var(--text);border-radius:9px;padding:9px 15px;
+    font-family:var(--ui);font-size:14px;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .05s;
+  }
+  .btn:hover{background:#1c2530;border-color:var(--accent-line);}
+  .btn:active{transform:translateY(1px);}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .btn[disabled]{opacity:.35;cursor:not-allowed;}
+  .btn.primary{background:var(--accent-dim);border-color:var(--accent-line);color:var(--accent);}
+  .hints{
+    flex:1;text-align:center;color:var(--faint);
+    font-size:12px;font-family:var(--mono);
+  }
+  .hints kbd{
+    background:var(--bg3);border:1px solid var(--line2);
+    border-bottom-width:2px;border-radius:5px;padding:1px 6px;
+    font-family:var(--mono);font-size:11px;color:var(--muted);margin:0 1px;
+  }
+
+  @media (max-width:1180px){ h1{font-size:52px;} h2{font-size:30px;} }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:280px;z-index:60;
+      transform:translateX(-100%);transition:transform .25s ease;
+    }
+    .app.nav-open .sidebar{transform:none;box-shadow:0 0 60px rgba(0,0,0,.6);}
+    .nav-toggle{display:inline-flex;}
+    .slide{padding:30px 22px;}
+    h1{font-size:40px;} h2{font-size:26px;} .lead{font-size:17px;}
+    .cols,.cols.wide-left{grid-template-columns:1fr;gap:20px;}
+    .hints{display:none;}
+  }
+  @media (max-width:560px){ h1{font-size:32px;} .nfr .body{font-size:16px;} }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo"><span class="dot"></span>Tieout</div>
+      <div class="tag">Architecture Spine &middot; feature altitude<br>functional core / imperative shell</div>
+    </div>
+    <ul class="navlist" id="navlist" role="tablist" aria-label="Slides"></ul>
+    <div class="sidebar-foot">17 ADs &middot; 2026&#8209;07&#8209;01</div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+    <div class="topbar">
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+      <span class="eyebrow">Tieout — Architecture</span>
+      <span class="spacer"></span>
+      <span class="counter" id="counter"><b>1</b>&nbsp;/&nbsp;12</span>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
+
+    <section class="stage" id="stage">
+
+      <!-- ---------- 1 · TITLE ---------- -->
+      <div class="slide active" role="tabpanel" aria-label="Title">
+        <div class="slide-inner">
+          <div class="kicker">Architecture Deck &middot; 2026-07-01</div>
+          <h1>Tieout</h1>
+          <p class="lead">Independently-verifiable reconciliation for onchain institutional positions.<br>
+          <span class="muted">Tie the chain out to your books — and let your examiner reproduce it, trusting no one.</span></p>
+
+          <div class="nfr">
+            <div class="label">NFR-0 · the one non-negotiable</div>
+            <div class="body"><code>tieout verify</code> re-derives the reconciliation from public chain data and reproduces the <strong>same hash on two independent machines.</strong></div>
+          </div>
+
+          <div class="chips" style="margin-top:26px">
+            <span class="chip on">functional core / imperative shell</span>
+            <span class="chip">bigint-only math</span>
+            <span class="chip">canonical JSON + keccak256</span>
+            <span class="chip">finality-pinned</span>
+            <span class="chip">17 architecture decisions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 2 · THE PROBLEM ---------- -->
+      <div class="slide" role="tabpanel" aria-label="The problem">
+        <div class="slide-inner">
+          <div class="kicker">The problem</div>
+          <h2>Dana is personally accountable for positions she cannot independently verify.</h2>
+          <div class="cols wide-left">
+            <div>
+              <ul class="clean">
+                <li><strong>Dana</strong> — RIA Head of Operations &amp; Compliance. Not crypto-hostile; <em>liability-aware.</em></li>
+                <li>Moving client assets = <strong>custody</strong> under the Investment Advisers Act custody rule.</li>
+                <li>Custody triggers an <strong>annual, no-notice independent verification</strong> — <span class="m">Form ADV-E</span>.</li>
+                <li>For traditional assets a custodian's statement suffices. For onchain assets, <strong>neither Dana nor her CPA can independently verify</strong> the positions tie out.</li>
+              </ul>
+            </div>
+            <div>
+              <div class="card hi">
+                <div class="tag">The gap</div>
+                <p style="font-size:15px;color:var(--text);margin-top:8px">Incumbents — <strong>Fireblocks/TRES, Cryptio, Bitwave</strong> — reconcile <strong class="accent">as the trusted intermediary</strong>: <em>"trust our API, the books are right."</em></p>
+                <p>Quietly re-introducing the exact trust assumption Ethereum was built to remove — reconciling from <strong>inside the trust boundary.</strong></p>
+              </div>
+              <p class="muted" style="margin-top:16px;font-size:14px">If the reconciliation is wrong, <strong class="not">it is Dana's name on the ADV-E.</strong></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 3 · NFR-0 ---------- -->
+      <div class="slide" role="tabpanel" aria-label="NFR-0">
+        <div class="slide-inner">
+          <div class="kicker">NFR-0 — the single non-negotiable</div>
+          <h2>Every decision descends from one requirement.</h2>
+          <div class="nfr" style="max-width:960px">
+            <div class="label">NFR-0</div>
+            <div class="body"><code>tieout verify</code> re-derives the reconciliation from public chain data and reproduces the <strong>same hash on two independent machines.</strong></div>
+          </div>
+          <div class="grid g3" style="margin-top:26px">
+            <div class="card">
+              <h3>Downstream of it</h3>
+              <p>Every invariant below (AD-1…AD-17) exists to protect NFR-0. Nothing is decorative.</p>
+            </div>
+            <div class="card">
+              <h3>A second implementation is invited</h3>
+              <p>The auditor may run an <strong>independent</strong> verifier — so the byte-level contract must be <strong>pinned, not left to implementer taste.</strong></p>
+            </div>
+            <div class="card">
+              <h3>Ambiguity = defect</h3>
+              <p>A rule two compliant builds could read two ways is a bug. Determinism is <strong>binary</strong>: ✅ / ❌.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 4 · PARADIGM (diagram 1) ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Functional core, imperative shell">
+        <div class="slide-inner">
+          <div class="kicker">Paradigm — functional core / imperative shell</div>
+          <h2>The core is pure. The shell holds every effect.</h2>
+          <p class="lead" style="margin-bottom:16px">Ports-and-adapters at the seam. Dependency direction is one-way: <strong class="accent">shell → core only; the core imports nothing from the shell.</strong></p>
+
+          <div class="diagram-wrap">
+            <svg class="diagram" viewBox="0 0 920 500" role="img" aria-label="Dependency graph: imperative shell depends on the pure core; the core imports nothing from the shell; contracts is standalone.">
+              <defs>
+                <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-end"><path d="M0 0 L10 5 L0 10 z" fill="#5eead4"/></marker>
+                <filter id="rough1" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="1" seed="5" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/></filter>
+              </defs>
+
+              <g filter="url(#rough1)">
+                <!-- shell region -->
+                <rect class="d-region" x="24" y="28" width="872" height="152" rx="12"/>
+                <rect class="d-box-mut" x="64" y="80" width="210" height="72" rx="9"/>
+                <rect class="d-box-mut" x="356" y="80" width="210" height="72" rx="9"/>
+                <rect class="d-box-mut" x="648" y="80" width="210" height="72" rx="9"/>
+                <!-- core region -->
+                <rect class="d-region" x="24" y="298" width="560" height="170" rx="12"/>
+                <rect class="d-box" x="64" y="352" width="228" height="94" rx="9"/>
+                <rect class="d-box" x="340" y="352" width="228" height="94" rx="9"/>
+                <!-- contracts -->
+                <rect class="d-box-mut" x="648" y="344" width="210" height="104" rx="9"/>
+                <!-- arrows shell -> core -->
+                <path class="d-arrow" d="M150 152 L150 350" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M196 152 L398 350" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M430 152 L250 350" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M461 152 L452 350" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M720 152 L512 350" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M500 152 L716 342" marker-end="url(#ar1)"/>
+                <path class="d-arrow" d="M775 152 L775 342" marker-end="url(#ar1)"/>
+                <!-- seam -->
+                <line x1="24" y1="240" x2="896" y2="240" stroke="#37b6a5" stroke-width="1.4" stroke-dasharray="3 6"/>
+              </g>
+
+              <!-- labels (crisp) -->
+              <text class="d-region-lbl" x="44" y="52">IMPERATIVE SHELL — all effects: RPC · log fetch · files/DB · attestation</text>
+              <text class="d-lbl ctr" x="169" y="112">indexer · Ponder</text>
+              <text class="d-sub ctr" x="169" y="134">live / CI runner</text>
+              <text class="d-lbl ctr" x="461" y="112">verify CLI</text>
+              <text class="d-sub ctr" x="461" y="134">eth_getLogs</text>
+              <text class="d-lbl ctr" x="753" y="112">apps/web</text>
+              <text class="d-sub ctr" x="753" y="134">explain-itself diff</text>
+
+              <text class="d-note-b ctr" x="300" y="232">shell → core only · the core imports NOTHING from the shell</text>
+
+              <text class="d-region-lbl" x="44" y="322">PURE CORE — no I/O · no clock · no network · no float · no config · no address lookups</text>
+              <text class="d-lbl ctr" x="178" y="394">derivation lib</text>
+              <text class="d-sub ctr" x="178" y="416">logs → manifest</text>
+              <text class="d-lbl ctr" x="454" y="394">recon engine</text>
+              <text class="d-sub ctr" x="454" y="416">manifest → report + hash</text>
+
+              <text class="d-region-lbl ctr" x="753" y="332">STANDALONE · consumed by shell + tests</text>
+              <text class="d-lbl-sm ctr" x="753" y="384">contracts · Foundry</text>
+              <text class="d-sub-sm ctr" x="753" y="406">MockStakedVault (ERC-4626)</text>
+              <text class="d-sub-sm ctr" x="753" y="424">+ AttestationRegistry</text>
+
+              <text class="d-tk end" x="878" y="486">→ = "imports / depends on"</text>
+            </svg>
+            <div class="cap">Diagram 1 — functional-core / imperative-shell dependency graph (AD-1)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 5 · ONE DERIVATION (diagram 2) ---------- -->
+      <div class="slide" role="tabpanel" aria-label="One derivation, two front-ends">
+        <div class="slide-inner">
+          <div class="kicker">One derivation, two front-ends</div>
+          <h2>Ponder and <code>verify</code> call the <span class="accent">same pure function.</span></h2>
+          <p class="lead" style="margin-bottom:16px">The raw-logs → manifest derivation — including normalization — is a single pure function (AD-9). Never reimplemented per caller. <strong>Ponder is not on the verify path.</strong></p>
+
+          <div class="diagram-wrap">
+            <svg class="diagram" viewBox="0 0 1060 470" role="img" aria-label="Build vs verify data flow: Ponder and verify both feed one shared pure derivation, producing a manifest, then recon with the ledger, then a report and hash, then attestation.">
+              <defs>
+                <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-end"><path d="M0 0 L10 5 L0 10 z" fill="#5eead4"/></marker>
+                <filter id="rough2" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency="0.013" numOctaves="1" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.1"/></filter>
+              </defs>
+
+              <g filter="url(#rough2)">
+                <rect class="d-box-mut" x="16" y="70" width="176" height="60" rx="9"/>
+                <rect class="d-box-mut" x="16" y="178" width="176" height="60" rx="9"/>
+                <rect class="d-box-alt" x="236" y="104" width="190" height="104" rx="10"/>
+                <rect class="d-box" x="470" y="116" width="162" height="80" rx="9"/>
+                <rect class="d-box" x="676" y="116" width="150" height="80" rx="9"/>
+                <rect class="d-box" x="870" y="112" width="176" height="90" rx="9"/>
+                <rect class="d-box-mut" x="470" y="300" width="162" height="78" rx="9"/>
+                <rect class="d-box-mut" x="870" y="300" width="176" height="84" rx="9"/>
+
+                <path class="d-arrow" d="M192 100 L232 130" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M192 208 L232 184" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M426 156 L466 156" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M632 156 L672 156" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M826 156 L866 156" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M566 300 L738 198" marker-end="url(#ar2)"/>
+                <path class="d-arrow" d="M958 202 L958 296" marker-end="url(#ar2)"/>
+              </g>
+
+              <text class="d-lbl-sm ctr" x="104" y="96">indexer · Ponder</text>
+              <text class="d-sub-sm ctr" x="104" y="116">live / CI</text>
+              <text class="d-lbl-sm ctr" x="104" y="204">verify</text>
+              <text class="d-sub-sm ctr" x="104" y="224">eth_getLogs</text>
+
+              <text class="d-lbl ctr" x="331" y="146">ONE shared</text>
+              <text class="d-lbl ctr" x="331" y="168">pure derivation</text>
+              <text class="d-note ctr" x="331" y="192">same fn · AD-9</text>
+
+              <text class="d-lbl-sm ctr" x="551" y="150">manifest</text>
+              <text class="d-sub-sm ctr" x="551" y="172">keccak → manifestHash</text>
+
+              <text class="d-lbl-sm ctr" x="751" y="152">recon</text>
+              <text class="d-sub-sm ctr" x="751" y="174">(pure)</text>
+
+              <text class="d-lbl-sm ctr" x="958" y="150">report.json</text>
+              <text class="d-sub-sm ctr" x="958" y="172">keccak → reportHash</text>
+
+              <text class="d-lbl-sm ctr" x="551" y="334">ledger (books)</text>
+              <text class="d-sub-sm ctr" x="551" y="356">keccak → ledgerHash</text>
+
+              <text class="d-lbl-sm ctr" x="958" y="332">AttestationRegistry</text>
+              <text class="d-sub-sm ctr" x="958" y="354">Base mainnet · bytes32</text>
+
+              <text class="d-warn" x="16" y="292">Ponder is NOT on the verify path.</text>
+            </svg>
+            <div class="cap">Diagram 2 — build-vs-verify: both front-ends → one derivation → manifest → recon → report+hash → attestation</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 6 · STRONG VERIFY + TRUST DIAL (diagram 3) ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Strong verify and the trust dial">
+        <div class="slide-inner">
+          <div class="kicker">Strong verify + the trust dial</div>
+          <h2>Finality → immutability → cacheable. <span class="accent">Entry layer = trust level.</span></h2>
+          <p class="lead" style="margin-bottom:14px">Strong <code>verify</code> reconstructs the manifest from public data over the pinned range (AD-8). <strong>L0 re-fetch is the canonical trustless path</strong> — cheap after the first fetch (AD-10).</p>
+
+          <div class="diagram-wrap">
+            <svg class="diagram" viewBox="0 0 960 546" role="img" aria-label="Trust dial: layers L0 auditor RPC, L1 raw-response cache, L2 manifest, L3 report. The needle points to L0, the trustless entry point; entering higher means trusting more upstream.">
+              <defs>
+                <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-end"><path d="M0 0 L10 5 L0 10 z" fill="#5eead4"/></marker>
+                <filter id="rough3" x="-4%" y="-4%" width="108%" height="108%"><feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="1" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2"/></filter>
+              </defs>
+
+              <g filter="url(#rough3)">
+                <!-- dial arc -->
+                <path class="d-track" d="M270 300 A210 210 0 0 1 690 300"/>
+                <!-- ticks -->
+                <line class="d-tick" x1="270" y1="300" x2="246" y2="300"/>
+                <line class="d-tick" x1="375" y1="118" x2="354" y2="106"/>
+                <line class="d-tick" x1="585" y1="118" x2="606" y2="106"/>
+                <line class="d-tick" x1="690" y1="300" x2="714" y2="300"/>
+                <!-- needle to L0 -->
+                <line class="d-needle" x1="480" y1="300" x2="298" y2="300"/>
+                <circle cx="480" cy="300" r="8" fill="#5eead4"/>
+                <!-- layer boxes -->
+                <rect class="d-box" x="24" y="392" width="204" height="118" rx="10"/>
+                <rect class="d-box-mut" x="260" y="392" width="204" height="118" rx="10"/>
+                <rect class="d-box-mut" x="496" y="392" width="204" height="118" rx="10"/>
+                <rect class="d-box-mut" x="732" y="392" width="204" height="118" rx="10"/>
+                <path class="d-arrow-mut" d="M230 451 L258 451" marker-end="url(#ar3)"/>
+                <path class="d-arrow-mut" d="M466 451 L494 451" marker-end="url(#ar3)"/>
+                <path class="d-arrow-mut" d="M702 451 L730 451" marker-end="url(#ar3)"/>
+              </g>
+
+              <!-- dial labels -->
+              <text class="d-tk end" x="240" y="304">L0</text>
+              <text class="d-tk ctr" x="352" y="98">L1</text>
+              <text class="d-tk ctr" x="608" y="98">L2</text>
+              <text class="d-tk" x="720" y="304">L3</text>
+              <text class="d-note ctr" x="300" y="284">trustless</text>
+              <text class="d-tk" x="196" y="336">TRUSTLESS — re-derive it</text>
+              <text class="d-tk end" x="762" y="336">TRUST UPSTREAM</text>
+
+              <text class="d-note-b ctr" x="480" y="366">entry layer = trust level</text>
+
+              <!-- layer box text -->
+              <text class="d-lbl-sm ctr" x="126" y="424">L0 — auditor RPC</text>
+              <text class="d-sub-sm ctr" x="126" y="450">re-fetch public data</text>
+              <text class="d-note ctr" x="126" y="474">canonical trustless</text>
+              <text class="d-sub-sm ctr" x="126" y="494">path (AD-10)</text>
+
+              <text class="d-lbl-sm ctr" x="362" y="424">L1 — raw cache</text>
+              <text class="d-sub-sm ctr" x="362" y="450">keyed by params</text>
+              <text class="d-sub-sm ctr" x="362" y="470">+ blockHash</text>
+              <text class="d-sub-sm ctr" x="362" y="490">immutable @ finality</text>
+
+              <text class="d-lbl-sm ctr" x="598" y="424">L2 — manifest</text>
+              <text class="d-sub-sm ctr" x="598" y="452">keccak →</text>
+              <text class="d-sub-sm ctr" x="598" y="472">manifestHash</text>
+
+              <text class="d-lbl-sm ctr" x="834" y="424">L3 — report</text>
+              <text class="d-sub-sm ctr" x="834" y="452">keccak →</text>
+              <text class="d-sub-sm ctr" x="834" y="472">reportHash</text>
+
+              <text class="d-warn ctr" x="480" y="534">blockHash-keying → a doctored fixture fails against any honest RPC</text>
+            </svg>
+            <div class="cap">Diagram 3 — the L0→L3 trust dial: enter at L0 and you trust no one</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 7 · FOUR DECISIONS ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Four load-bearing decisions">
+        <div class="slide-inner">
+          <div class="kicker">The four load-bearing decisions — resolved</div>
+          <h2>Where the design could have forked, it doesn't.</h2>
+          <div class="grid g2">
+            <div class="card">
+              <h3><span class="ad">AD-6</span>Canonical rate = event-derived</h3>
+              <p>The authoritative rate curve is a step function from Lido <code>TokenRebased</code> fields. The <strong>archive read is a cross-check, asserted exactly equal at rebase blocks</strong> — so the verifier never needs an archive node.</p>
+            </div>
+            <div class="card">
+              <h3><span class="ad">AD-7/8</span>Boundary = manifest + strong verify</h3>
+              <p>The sole core input is the canonical <strong>manifest</strong> + <code>ledger</code>. <code>verify</code> <strong>re-derives</strong> the manifest from public data — never trusts a shipped one.</p>
+            </div>
+            <div class="card">
+              <h3><span class="ad">AD-11/12</span>Serialization = JCS + keccak256</h3>
+              <p>Canonical JSON (RFC 8785, JCS) with <strong>string bigints</strong>, then <code>keccak256</code>. One named canonicalizer; the on-disk <code>report.json</code> is byte-identical to the hashed bytes.</p>
+            </div>
+            <div class="card">
+              <h3><span class="ad">AD-14</span>Attestation = stored registry</h3>
+              <p>A single <code>bytes32</code> anchored in <strong>AttestationRegistry on Base mainnet</strong> — first-write-wins, tamper-evident, timestamped.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 8 · BYTE CONTRACT ---------- -->
+      <div class="slide" role="tabpanel" aria-label="The byte-level contract">
+        <div class="slide-inner">
+          <div class="kicker">The byte-level contract — why the hash reproduces</div>
+          <h2>Two compliant builds must produce the <span class="accent">identical bytes.</span></h2>
+          <div class="cols">
+            <ul class="clean">
+              <li><strong>Integers</strong> → decimal strings matching <code>^-?[0-9]+$</code>, from <span class="m">BigInt.toString(10)</span> only. Never a JSON number.</li>
+              <li><strong>Hex</strong> (addresses, tx/block hashes, topics) → <span class="m">lowercase, 0x-prefixed, fixed-width</span>. EIP-55 checksum is display-only.</li>
+              <li><strong>JCS bytes</strong> → sorted keys, UTF-8, NFC, <strong>no BOM, no trailing newline</strong> (single-line).</li>
+            </ul>
+            <ul class="clean">
+              <li><strong>Math</strong> → multiply-before-divide with <strong>exactly one floor division</strong>; non-negative bigints. No float ever touches the canonical path.</li>
+              <li><strong>Window</strong> → both endpoints pinned as <span class="m">(blockNumber, blockHash)</span>; closed range <code>[start, end]</code>; <code>latest</code> never read.</li>
+              <li><strong>Hash</strong> → <strong class="accent">Ethereum keccak256 (Keccak padding)</strong>, not NIST SHA3-256.</li>
+            </ul>
+          </div>
+          <div class="card hi" style="margin-top:20px">
+            <p style="font-size:15px;color:var(--text);margin:0"><strong>Every array declares a total order.</strong> JCS sorts object keys but <em>not</em> arrays — so events order by <span class="mono accent">(blockNumber, txIndex, logIndex)</span>, which is also the dedup key (AD-4), and report lots order by acquisition (AD-13).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 9 · ATTESTATION ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Attestation">
+        <div class="slide-inner">
+          <div class="kicker">Attestation — what the chain does &amp; doesn't prove</div>
+          <h2>Tamper-evidence + a commitment timestamp. <span class="accent">Nothing more.</span></h2>
+          <div class="cols">
+            <div>
+              <div class="card">
+                <div class="tag">contracts/AttestationRegistry</div>
+                <p style="font-size:14px;color:var(--text);margin-top:10px;line-height:1.7">
+                  <span class="mono accent">attest(bytes32 reportHash)</span><br>
+                  <span class="muted">first-write-wins · reverts on duplicate</span><br>
+                  stores <span class="mono">{ uint64 blockNumber, uint64 timestamp }</span><br>
+                  emits <span class="mono">Attested(reportHash, submitter, timestamp)</span>
+                </p>
+              </div>
+              <p class="muted" style="font-size:13.5px;margin-top:14px">One anchored value: <span class="mono accent">reportHash</span>. Tested on Anvil → dry-run on Base Sepolia → single canonical anchor on <strong>Base mainnet</strong>.</p>
+            </div>
+            <div>
+              <h3 style="color:var(--accent);margin-bottom:12px">It proves</h3>
+              <ul class="clean" style="margin-bottom:22px">
+                <li><code>reportHash</code> existed / was committed <strong>at or after a block.</strong></li>
+                <li>The record is <strong>tamper-evident</strong> thereafter.</li>
+              </ul>
+              <h3 class="not" style="margin-bottom:12px">It does NOT prove</h3>
+              <ul class="clean">
+                <li><span class="pill-not">NOT</span><strong>correctness</strong> — that comes solely from <code>verify</code> re-derivation.</li>
+                <li><span class="pill-not">NOT</span><strong>identity</strong> — <span class="mono">submitter</span> is a recorded fact, not a signature over the report.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 10 · HONESTY BOUNDARY ---------- -->
+      <div class="slide" role="tabpanel" aria-label="What it deliberately does not claim">
+        <div class="slide-inner">
+          <div class="kicker">What it deliberately does NOT claim</div>
+          <h2>The honesty guardrail matters as much as the claim.</h2>
+          <div class="grid g2">
+            <div class="card">
+              <h3><span class="ad">AD-16</span>Derivation, not the books</h3>
+              <p>A reproduced hash attests the <strong>onchain-derived position and the commitment to it</strong> — <strong class="not">never the honesty or completeness of the private books.</strong> A green <code>verify</code> means <em>"derivation reproduced,"</em> not <em>"the books are right."</em> Report text, UI, and <code>verify</code> output must say so.</p>
+            </div>
+            <div class="card">
+              <h3><span class="ad">AD-17</span>Narration from real facts only</h3>
+              <p>The explain-itself narration is generated <strong>solely from recon's real diff</strong> — event id, block, delta, cause — via deterministic templating. <strong class="not">No hand-authored numbers or causes</strong> on the canonical path. Purely presentational, UI-only text is marked non-canonical and excluded from the hash.</p>
+            </div>
+          </div>
+          <p class="lead" style="margin-top:22px;font-size:18px">The unfair advantage isn't a technical moat — it's <strong>Series-65 fluency</strong> landing the guardrails exactly where most engineers get them subtly, dangerously wrong.</p>
+        </div>
+      </div>
+
+      <!-- ---------- 11 · STACK & SCOPE ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Stack and scope">
+        <div class="slide-inner">
+          <div class="kicker">Stack (web-verified 2026-07-01) · MVP scope · parked vision</div>
+          <h2>One wedge, pinned precisely.</h2>
+          <div class="cols wide-left">
+            <div>
+              <table>
+                <thead><tr><th>Component</th><th>Version / value</th></tr></thead>
+                <tbody>
+                  <tr><td>Node.js</td><td class="mono">24 (Active LTS)</td></tr>
+                  <tr><td>TypeScript</td><td class="mono">6.0.3</td></tr>
+                  <tr><td>Ponder (indexer)</td><td class="mono">0.16.6</td></tr>
+                  <tr><td>viem</td><td class="mono">2.54.1</td></tr>
+                  <tr><td>Foundry</td><td class="mono">v1.7.1 (stable)</td></tr>
+                  <tr><td>Solidity</td><td class="mono">0.8.35</td></tr>
+                  <tr><td>Canonical JSON</td><td class="mono">RFC 8785 (JCS)</td></tr>
+                  <tr><td>Data chain</td><td class="mono">Ethereum mainnet · chainId 1</td></tr>
+                  <tr><td>Anchor chain</td><td class="mono">Base mainnet · 8453</td></tr>
+                </tbody>
+              </table>
+              <p class="muted" style="font-size:12.5px;margin-top:12px">wstETH <span class="hash mono">0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0</span><br>stETH&nbsp;&nbsp;<span class="hash mono">0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84</span></p>
+            </div>
+            <div>
+              <div class="card hi">
+                <div class="tag">MVP thin slice — the unfakeable core</div>
+                <ul class="clean" style="margin-top:8px">
+                  <li>One real public <strong>wstETH</strong> address</li>
+                  <li>30-day <strong>finalized</strong> window (never <code>latest</code>)</li>
+                  <li><strong>Injected discrepancy</strong> via <span class="m">MockStakedVault</span></li>
+                  <li><strong>Dual-derivation cross-check</strong>: events vs archive</li>
+                </ul>
+              </div>
+              <div class="card" style="margin-top:16px">
+                <div class="tag" style="color:var(--warn)">Parked vision — zero MVP code</div>
+                <div class="chips" style="margin-top:10px">
+                  <span class="chip">ZK proof of correct reconciliation</span>
+                  <span class="chip">selective disclosure</span>
+                  <span class="chip">open attestation standard</span>
+                  <span class="chip">multi-address aggregation</span>
+                  <span class="chip">"Plaid for onchain positions"</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- 12 · CLOSE ---------- -->
+      <div class="slide" role="tabpanel" aria-label="Close">
+        <div class="slide-inner">
+          <div class="kicker">Close</div>
+          <h1 style="font-size:44px;margin-bottom:18px">The spine is the contract.<br>The test suite is the showcase.</h1>
+          <p class="lead" style="margin-bottom:24px">17 architecture decisions, each byte-precise, each downstream of NFR-0. Determinism is property/fuzz-tested; a cross-machine <code>reportHash</code> check runs in CI; the canonical slice drives a real discrepancy <strong>and</strong> the AD-6 cross-check — never a happy-path toy.</p>
+          <div class="chips">
+            <span class="chip on">AD-1</span><span class="chip on">AD-2</span><span class="chip on">AD-3</span><span class="chip on">AD-4</span>
+            <span class="chip on">AD-5</span><span class="chip on">AD-6</span><span class="chip on">AD-7</span><span class="chip on">AD-8</span>
+            <span class="chip on">AD-9</span><span class="chip on">AD-10</span><span class="chip on">AD-11</span><span class="chip on">AD-12</span>
+            <span class="chip on">AD-13</span><span class="chip on">AD-14</span><span class="chip on">AD-15</span><span class="chip on">AD-16</span>
+            <span class="chip on">AD-17</span>
+          </div>
+          <div class="nfr" style="margin-top:28px">
+            <div class="label">the goal, stated plainly</div>
+            <div class="body">Make an institution's first onchain audit <strong>boring.</strong></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================== CONTROLS ===================== -->
+    <footer class="controls">
+      <button class="btn" id="prevBtn" aria-label="Previous slide">&larr; Prev</button>
+      <div class="hints">
+        <kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate &nbsp;·&nbsp; <kbd>1</kbd>–<kbd>9</kbd> jump &nbsp;·&nbsp; <kbd>Home</kbd> / <kbd>End</kbd> &nbsp;·&nbsp; click a title
+      </div>
+      <button class="btn primary" id="nextBtn" aria-label="Next slide">Next &rarr;</button>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var titles = [
+    "Title","The Problem","NFR-0","Core / Shell","One Derivation","Strong Verify",
+    "Four Decisions","Byte Contract","Attestation","Honesty Boundary","Stack & Scope","Close"
+  ];
+  var navlist   = document.getElementById('navlist');
+  var counter   = document.getElementById('counter');
+  var progress  = document.getElementById('progress');
+  var prevBtn   = document.getElementById('prevBtn');
+  var nextBtn   = document.getElementById('nextBtn');
+  var app       = document.getElementById('app');
+  var navToggle = document.getElementById('navToggle');
+  var total     = slides.length;
+  var current   = 0;
+
+  // build nav
+  var navItems = [];
+  titles.forEach(function(t, i){
+    var li = document.createElement('li');
+    var b  = document.createElement('button');
+    b.className = 'nav-item';
+    b.setAttribute('role','tab');
+    b.innerHTML = '<span class="num">' + String(i+1).padStart(2,'0') + '</span><span>' + t + '</span>';
+    b.addEventListener('click', function(){ go(i); closeNav(); });
+    li.appendChild(b);
+    navlist.appendChild(li);
+    navItems.push(b);
+  });
+
+  function go(i){
+    i = Math.max(0, Math.min(total - 1, i));
+    slides[current].classList.remove('active');
+    slides[current].setAttribute('aria-hidden','true');
+    navItems[current].classList.remove('active');
+    navItems[current].removeAttribute('aria-current');
+
+    current = i;
+
+    slides[current].classList.add('active');
+    slides[current].setAttribute('aria-hidden','false');
+    slides[current].scrollTop = 0;
+    navItems[current].classList.add('active');
+    navItems[current].setAttribute('aria-current','true');
+    navItems[current].scrollIntoView({block:'nearest'});
+
+    counter.innerHTML = '<b>' + (current+1) + '</b>&nbsp;/&nbsp;' + total;
+    progress.style.width = ((current+1)/total*100) + '%';
+    prevBtn.disabled = (current === 0);
+    nextBtn.disabled = (current === total-1);
+  }
+
+  // digit-buffer jump (handles 1..12)
+  var buf = '', bufTimer = null;
+  function commitBuf(){
+    if(!buf) return;
+    var n = parseInt(buf, 10);
+    buf = '';
+    if(!isNaN(n) && n >= 1) go(n-1);
+  }
+
+  document.addEventListener('keydown', function(e){
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ':
+        e.preventDefault(); go(current+1); break;
+      case 'ArrowLeft': case 'PageUp':
+        e.preventDefault(); go(current-1); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End':  e.preventDefault(); go(total-1); break;
+      case 'Enter': if(buf){ clearTimeout(bufTimer); commitBuf(); } break;
+      default:
+        if(/^[0-9]$/.test(e.key)){
+          buf += e.key;
+          clearTimeout(bufTimer);
+          if(parseInt(buf,10) > total || buf.length >= 2){ commitBuf(); }
+          else { bufTimer = setTimeout(commitBuf, 450); }
+        }
+    }
+  });
+
+  prevBtn.addEventListener('click', function(){ go(current-1); });
+  nextBtn.addEventListener('click', function(){ go(current+1); });
+
+  function closeNav(){ app.classList.remove('nav-open'); }
+  navToggle.addEventListener('click', function(){ app.classList.toggle('nav-open'); });
+
+  go(0);
+})();
+</script>
+</body>
+</html>

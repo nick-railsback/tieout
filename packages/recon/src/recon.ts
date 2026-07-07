@@ -1,5 +1,6 @@
 import { type Hex } from "viem";
-import { type CanonicalValue, canonicalHash } from "./canonical.ts";
+import { type CanonicalValue, canonicalHash, compareCodeUnits } from "./canonical.ts";
+import { findTokenAddress } from "./derivation.ts";
 import { type Ledger, ledgerHash } from "./ledger.ts";
 import {
   type Manifest,
@@ -15,6 +16,35 @@ import { ENGINE_VERSION, REPORT_SCHEMA_VERSION } from "./version.ts";
 /** stETH-per-wstETH rate fixed-point scale (AD-2): `rate1e18` is 1e18-scaled. */
 const RATE_SCALE = 10n ** 18n;
 
+/** wstETH shares are wei — 18 dp. Numerically equal to {@link RATE_SCALE} but a
+ * distinct AD-2 normalization axis: this rescales the share balance, that
+ * rescales the 1e18 rate. Named separately so the USD denominator reads as the
+ * three explicit scales it folds (shares · rate · price). */
+const SHARES_SCALE = 10n ** 18n;
+
+/**
+ * The report's declared fixed USD scale (AD-18/AD-20): micro-USD, 6 dp. The
+ * golden ledger authors `costBasisUsd` at this scale ($250,000 = 250000000000),
+ * so `currentValueUsd` MUST share it or `unrealizedPnl = currentValueUsd − Σ
+ * costBasisUsd` is meaningless. Emitted as a decimal-string bigint — never a
+ * float, and never via a viem unit helper (`parseUnits` rounds; `formatUnits`
+ * yields a human string), which would violate AD-2's one-truncating-division
+ * rule. [viem@2.54.1 src/utils/unit/parseUnits.ts#L17-L57]
+ */
+const USD_DECIMALS = 6n;
+const USD_SCALE = 10n ** USD_DECIMALS;
+
+/**
+ * Upper bound on the feed's `decimals`, guarding the ONE input-controlled
+ * exponentiation on the canonical path (`10n ** price.decimals`). A Chainlink
+ * `decimals()` is a `uint8` and real feeds are ≤ 18, so 36 is generous. Without
+ * this bound a validated-but-adversarial manifest — `parseNonNegInt` bounds
+ * `decimals` below but NOT above — could carry an astronomically large value and
+ * make `recon` materialize a multi-billion-digit bigint, hanging the trustless
+ * re-derivation path (a DoS). [Source: docs/ARCHITECTURE-SPINE.md#AD-18]
+ */
+const MAX_PRICE_DECIMALS = 36n;
+
 export type AxisResult = {
   /** Event/curve-derived onchain quantity. */
   readonly onchain: bigint;
@@ -25,7 +55,15 @@ export type AxisResult = {
   readonly tieOut: boolean;
 };
 
-/** The exact breaking event named for a discrepancy (AC-1.5.c). */
+/**
+ * The last in-window event that COULD have broken an axis — a heuristic locator,
+ * NOT a proven cause (AC-1.5.c). Each axis is an aggregate sum, so when a window
+ * holds several in-window rebases (reward) or subject transfers (closingShares)
+ * the delta cannot single out which one the books missed; `recon` names the most
+ * recent candidate. Consumers must phrase it as a locator ("last in-window …"),
+ * never as factual attribution. (The field is `breakingEvent` for wire/JSON
+ * stability — renaming it would change the canonical report bytes.)
+ */
 export type BreakingEvent = {
   readonly txHash: string;
   readonly blockNumber: bigint;
@@ -55,6 +93,31 @@ export type ReportPins = {
 };
 
 /**
+ * The USD valuation leg (AD-18/AD-20). `currentValueUsd` is the CHAIN-derived
+ * position (`sharesValued`) valued at the block-pinned public price observation
+ * — an onchain-derived fact. `costBasisUsd` (Σ of the book's per-lot cost) is a
+ * BOOK claim, so `unrealizedPnl` mixes a chain fact with a book claim (AD-16):
+ * a reproduced hash attests the derivation, never the honesty of the books.
+ * Every integer is a decimal-string `bigint`; `unrealizedPnl` is signed —
+ * negative when the chain value is below the booked cost basis.
+ */
+export type ReportValuation = {
+  /** The declared fixed report USD scale — 6 (micro-USD) for the MVP (AD-20). */
+  readonly usdDecimals: bigint;
+  readonly currentValueUsd: bigint;
+  readonly costBasisUsd: bigint;
+  readonly unrealizedPnl: bigint;
+  /** The chain-derived shares actually valued (`onchainShares`, AD-16). */
+  readonly sharesValued: bigint;
+  /** The stETH-per-wstETH rate used — `rateEnd`, reused from the reward axis. */
+  readonly rate1e18: bigint;
+  /** Price provenance, read from `manifest.priceObservation` (never assumed). */
+  readonly roundId: bigint;
+  readonly answer: bigint;
+  readonly priceDecimals: bigint;
+};
+
+/**
  * The hash-addressed reconciliation report — the single reproducible evidence
  * artifact for a position. Merkle-shaped: an ordered list of per-lot records
  * (AD-13), embedding `manifestHash`, `ledgerHash`, `engineVersion`, and the
@@ -74,21 +137,13 @@ export type Report = {
   };
   readonly lots: readonly ReportLot[];
   readonly discrepancies: readonly Discrepancy[];
+  readonly valuation: ReportValuation;
 };
 
 export type ReconError = {
   readonly code: string;
   readonly message: string;
 };
-
-function compareCodeUnits(a: string, b: string): number {
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const delta = a.charCodeAt(i) - b.charCodeAt(i);
-    if (delta !== 0) return delta;
-  }
-  return a.length - b.length;
-}
 
 /** The rate in effect at `block`: the most recent rebase point at or before it
  * (AD-6). `null` if the curve does not seed at/before `block`. */
@@ -105,22 +160,34 @@ function inWindow(event: ManifestEvent, manifest: Manifest): boolean {
   return event.blockNumber >= manifest.startBlock && event.blockNumber <= manifest.endBlock;
 }
 
-/** The latest in-window rebase — the breaking event for a reward discrepancy. */
-function lastRebaseInWindow(manifest: Manifest): RebaseEvent | null {
+/** The latest in-window rebase from the real stETH token — the last candidate for
+ * a reward discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
+function lastRebaseInWindow(manifest: Manifest, stETH: string): RebaseEvent | null {
   let found: RebaseEvent | null = null;
   for (const event of manifest.events) {
-    if (event.type === "TokenRebased" && inWindow(event, manifest)) found = event;
+    if (
+      event.type === "TokenRebased" &&
+      event.address.toLowerCase() === stETH &&
+      inWindow(event, manifest)
+    ) {
+      found = event;
+    }
   }
   return found;
 }
 
-/** The latest in-window transfer touching the subject — breaking event for a
- * closing-shares discrepancy. */
-function lastSubjectTransferInWindow(manifest: Manifest, subject: string): TransferEvent | null {
+/** The latest in-window wstETH transfer touching the subject — the last candidate
+ * for a closing-shares discrepancy (a locator, not a proven cause; see {@link BreakingEvent}). */
+function lastSubjectTransferInWindow(
+  manifest: Manifest,
+  subject: string,
+  wstETH: string,
+): TransferEvent | null {
   let found: TransferEvent | null = null;
   for (const event of manifest.events) {
     if (
       event.type === "Transfer" &&
+      event.address.toLowerCase() === wstETH &&
       inWindow(event, manifest) &&
       (event.from === subject || event.to === subject)
     ) {
@@ -147,10 +214,10 @@ function breakingEventOf(event: TransferEvent | RebaseEvent | null): BreakingEve
  *
  * [Source: docs/ARCHITECTURE-SPINE.md#AD-1, #AD-2, #AD-13]
  */
-export function recon(manifest: Manifest, ledger: Ledger): Result<
-  { readonly report: Report; readonly reportHash: Hex },
-  ReconError
-> {
+export function recon(
+  manifest: Manifest,
+  ledger: Ledger,
+): Result<{ readonly report: Report; readonly reportHash: Hex }, ReconError> {
   // Recon-boundary precondition (AC-1.2.b, AD-3/AD-20): the ledger's window
   // must equal the manifest's pinned [startBlock, endBlock]. This is the point
   // where the manifest's pins and the ledger's window first coexist.
@@ -175,10 +242,30 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     });
   }
 
+  // Resolve the real token addresses from the manifest's OWN embedded table so
+  // recon trusts only events emitted by the wstETH/stETH contracts — derive
+  // already filters emitters, but recon must not re-trust a hand-authored,
+  // validator-passing manifest that injects a Transfer from a foreign contract
+  // (SEC-2). A manifest lacking the tokens is malformed for this engine.
+  const wstETH = findTokenAddress(manifest.addressTable, "wstETH");
+  const stETH = findTokenAddress(manifest.addressTable, "stETH");
+  if (wstETH === null || stETH === null) {
+    return err({
+      code: "missing-token-address",
+      message: "manifest.addressTable must carry wstETH and stETH (AD-5)",
+    });
+  }
+
   // --- Closing-shares axis: event-derived balance vs Σ lots.shares ---
   let onchainShares = 0n;
   for (const event of manifest.events) {
-    if (event.type !== "Transfer" || !inWindow(event, manifest)) continue;
+    if (
+      event.type !== "Transfer" ||
+      event.address.toLowerCase() !== wstETH ||
+      !inWindow(event, manifest)
+    ) {
+      continue;
+    }
     if (event.to === ledger.subject) onchainShares += event.value;
     if (event.from === ledger.subject) onchainShares -= event.value;
   }
@@ -203,6 +290,19 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
   // compute reward on an unreconciled base. (In a monotonic-rate window both are
   // non-negative; slashing — a decreasing rate — making rateGrowth negative is a
   // Batch-2 concern, see the deferred review follow-up.)
+  //
+  // KNOWN v0.1.0 COARSE-FORMULA SIMPLIFICATION (code-review 2026-07-07 #1): this
+  // applies the FULL-WINDOW rate growth to the CLOSING share balance with no
+  // per-lot proration from each lot's acquisition-time rate. Because AD-20's
+  // window contract admits only in-window acquisitions, a lot bought AFTER the
+  // window's only rebase earned nothing from it, yet is still credited full
+  // growth — so honest books booking 0 for it show a reward discrepancy that is
+  // an artifact of this coarse definition, not a real tie-out break. This is the
+  // literal AD-20 / spine reward-axis definition ("chain rate-curve growth vs
+  // bookedReward"), and the golden `bookedReward` is authored to it. Per-lot
+  // proration is hash-moving (engineVersion bump + golden regen) and deferred —
+  // see implementation-artifacts/deferred-work.md; the characterization test
+  // "known v0.1.0 simplification …" in recon.test.ts pins this behavior.
   const onchainReward = (onchainShares * rateGrowth) / RATE_SCALE;
   const rewardDelta = onchainReward - ledger.bookedReward;
 
@@ -226,14 +326,14 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     discrepancies.push({
       axis: "closingShares",
       delta: sharesDelta,
-      breakingEvent: breakingEventOf(lastSubjectTransferInWindow(manifest, ledger.subject)),
+      breakingEvent: breakingEventOf(lastSubjectTransferInWindow(manifest, ledger.subject, wstETH)),
     });
   }
   if (rewardDelta !== 0n) {
     discrepancies.push({
       axis: "reward",
       delta: rewardDelta,
-      breakingEvent: breakingEventOf(lastRebaseInWindow(manifest)),
+      breakingEvent: breakingEventOf(lastRebaseInWindow(manifest, stETH)),
     });
   }
 
@@ -257,6 +357,51 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
       costBasisUsd: lot.costBasisUsd,
     }));
 
+  // --- USD valuation + unrealized P/L (AD-18 consumption, AD-2, AD-20) ---
+  // Value the CHAIN-derived closing balance (onchainShares, AD-16) at the
+  // block-pinned public price observation already carried in the hashed manifest
+  // — no `latest`, no DEX spot. The three input scales are folded into a single
+  // numerator/denominator with EXACTLY ONE truncating division (AD-2):
+  //
+  //   onchainShares(18dp) · rateEnd(1e18) · answer(feed-native) · 10^USD_DECIMALS
+  //   ───────────────────────────────────────────────────────────────────────────
+  //             10^18 (shares) · 10^18 (rate) · 10^decimals (price)
+  //
+  // `priceObservation.decimals` is read from the manifest, NEVER assumed 8.
+  const price = manifest.priceObservation;
+  // Guard the one input-controlled exponentiation (review follow-up, AD-18): a
+  // manifest can pass validateManifest with an unbounded `decimals`, so bound it
+  // here before `10n ** decimals` rather than trust the value's magnitude.
+  if (price.decimals > MAX_PRICE_DECIMALS) {
+    return err({
+      code: "price-decimals-out-of-range",
+      message:
+        `priceObservation.decimals ${price.decimals} exceeds the supported ` +
+        `max ${MAX_PRICE_DECIMALS} (AD-18)`,
+    });
+  }
+  const priceScale = 10n ** price.decimals;
+  const usdNumerator = onchainShares * rateEnd * price.answer * USD_SCALE;
+  const usdDenominator = SHARES_SCALE * RATE_SCALE * priceScale;
+  const currentValueUsd = usdNumerator / usdDenominator; // one truncating `/` (AD-2)
+
+  let costBasisUsd = 0n;
+  for (const lot of ledger.lots) costBasisUsd += lot.costBasisUsd;
+  // Subtraction only (AD-2); signed — negative when chain value < booked cost.
+  const unrealizedPnl = currentValueUsd - costBasisUsd;
+
+  const valuation: ReportValuation = {
+    usdDecimals: USD_DECIMALS,
+    currentValueUsd,
+    costBasisUsd,
+    unrealizedPnl,
+    sharesValued: onchainShares,
+    rate1e18: rateEnd,
+    roundId: price.roundId,
+    answer: price.answer,
+    priceDecimals: price.decimals,
+  };
+
   const report: Report = {
     schemaVersion: REPORT_SCHEMA_VERSION,
     engineVersion: ENGINE_VERSION,
@@ -273,6 +418,7 @@ export function recon(manifest: Manifest, ledger: Ledger): Result<
     axes: { closingShares, reward },
     lots,
     discrepancies,
+    valuation,
   };
 
   return ok({ report, reportHash: canonicalHash(canonicalReport(report)) });
@@ -320,6 +466,21 @@ export function canonicalReport(report: Report): CanonicalValue {
               logIndex: d.breakingEvent.logIndex,
             },
     })),
+    valuation: canonicalValuation(report.valuation),
+  };
+}
+
+function canonicalValuation(valuation: ReportValuation): CanonicalValue {
+  return {
+    usdDecimals: valuation.usdDecimals,
+    currentValueUsd: valuation.currentValueUsd,
+    costBasisUsd: valuation.costBasisUsd,
+    unrealizedPnl: valuation.unrealizedPnl,
+    sharesValued: valuation.sharesValued,
+    rate1e18: valuation.rate1e18,
+    roundId: valuation.roundId,
+    answer: valuation.answer,
+    priceDecimals: valuation.priceDecimals,
   };
 }
 

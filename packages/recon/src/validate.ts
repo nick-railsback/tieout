@@ -44,7 +44,11 @@ export function parseNonNegInt(input: unknown, path: string): Result<bigint, Fie
     return fail("bad-type", `${path}: expected a decimal string`, path);
   }
   if (!DECIMAL_INT.test(input)) {
-    return fail("not-decimal-string", `${path}: not a ^-?[0-9]+$ decimal string (AD-2/AD-11)`, path);
+    return fail(
+      "not-decimal-string",
+      `${path}: not a ^-?[0-9]+$ decimal string (AD-2/AD-11)`,
+      path,
+    );
   }
   const parsed = BigInt(input);
   if (parsed < 0n) {

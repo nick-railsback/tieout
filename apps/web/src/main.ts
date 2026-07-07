@@ -1,9 +1,8 @@
 /**
- * `@tieout/web` — SCAFFOLD ONLY for Batch 1.
- *
- * The explain-itself report view (rendering a `report.json` and its `verify`
- * outcome) is Batch 5. This placeholder exists only to prove the app builds
- * under the pinned stack (Node 24 · TypeScript 6.0.3, strict). No UI logic and
- * no framework are wired yet — that toolchain arrives with the UI in Batch 5.
+ * The browser entry point. All shell logic lives in `createShell` (`shell.ts`),
+ * extracted there so its DOM painting and error paths are testable headless;
+ * this module just mounts it against the real DOM, `fetch`, and chain effects.
  */
-export const TIEOUT_WEB_SCAFFOLD = "batch-1-scaffold" as const;
+import { createShell } from "./shell.ts";
+
+createShell().mount();

@@ -1,15 +1,25 @@
 {
   "name": "@tieout/web",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
-  "description": "Web app — SCAFFOLD ONLY for Batch 1. UI (the explain-itself report view) is Batch 5.",
+  "description": "The tieout web surface — live wstETH positions (Multicall3 + WebSocket), the explain-itself report diff, and the Base attestation anchor. Renders only real engine/chain output (AD-16/AD-17); it never re-hashes a report (AD-13).",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@tieout/addresses": "workspace:*",
+    "@tieout/recon": "workspace:*",
+    "viem": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "vite": "catalog:"
   }
 }

@@ -1,6 +1,7 @@
 {
   "name": "@tieout/contracts",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
-  "description": "Foundry project — SCAFFOLD ONLY for Batch 1. MockStakedVault is Batch 2, AttestationRegistry is Batch 3. Built with `forge build`, not the node workspace toolchain."
+  "description": "Foundry project (Batches 2-3) — MockStakedVault (a test-only staked-vault double) and the AttestationRegistry anchor, both implemented, tested, and gas-snapshotted. Built with `forge build`, not the node workspace toolchain."
 }
