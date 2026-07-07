@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { keccak256 } from "viem";
 import { mainnetClient, DEFAULT_BLOCKS_PER_CHUNK } from "../rpc.ts";
 import { canonicalBytes } from "../canonical.ts";
 import { validateLedger, ledgerHash } from "../ledger.ts";
@@ -153,14 +152,17 @@ async function main(): Promise<number> {
   }
 
   // 5) recon → confirm reportHash by BYTE-IDENTITY with the shipped report.json.
+  // Byte-identity IS the reportHash proof: reportHash = keccak256(canonicalBytes
+  // (report)) and report.json on disk is those exact canonical bytes (AD-11/AD-12),
+  // so equal bytes ⇒ equal hash. A separate `reportHash != keccak256(reportBytes)`
+  // re-check would be unreachable after the byte compare (it could only fire if
+  // keccak256 were non-deterministic within one process), so it is intentionally
+  // omitted rather than left as a dead branch (code-review 2026-07-07 #8).
   const result = recon(manifest, ledger.value);
   if (!result.ok) return fail(`recon failed: [${result.error.code}] ${result.error.message}`);
   const reproBytes = canonicalBytes(canonicalReport(result.value.report));
   if (Buffer.compare(Buffer.from(reproBytes), reportBytes) !== 0) {
     return fail("report bytes differ — re-derivation did not reproduce report.json (NFR-0 break)");
-  }
-  if (result.value.reportHash !== keccak256(reportBytes)) {
-    return fail(`reportHash mismatch: ${result.value.reportHash} != keccak256(report.json)`);
   }
 
   process.stdout.write(`✅ manifestHash reproduced: ${manifestHash(manifest)}\n`);
