@@ -70,7 +70,33 @@ test("dedups by block and emits strictly-increasing rebaseBlock (validateManifes
   const blocks = result.value.map((p) => p.rebaseBlock);
   assert.deepEqual(blocks, [90n, 150n]);
   for (let i = 1; i < blocks.length; i++) assert.ok(blocks[i - 1]! < blocks[i]!);
-  assert.equal(result.value[1]!.rate1e18, rateFromRebase(120n, 100n)); // first delivery kept
+  // Last delivery for a block wins (end-of-block state, finding #5): block 150's
+  // second observation (ether=999) is kept, not the first (120).
+  assert.equal(result.value[1]!.rate1e18, rateFromRebase(999n, 100n));
+});
+
+// Code review 2026-07-07, finding #5: buildRateCurve kept the FIRST rebase seen
+// per block, but fetchRebaseAt seeds from the LAST log in a block and the AD-6
+// archive cross-check reads END-of-block state (stEthPerToken() at the block).
+// Two TokenRebased in one in-window block must therefore resolve to the LAST
+// (end-of-block) observation, else the curve's rate at that block disagrees with
+// the archive read and verify fails with a false RateDivergence. Lido's ~24h
+// oracle cadence makes two-per-block impossible today, so this removes a latent
+// dependency on that external cadence rather than fixing an observed break.
+test("keeps the LAST rebase per block (end-of-block state, matches AD-6 archive read) — review #5", () => {
+  // rawLogs arrive ascending by (block, logIndex); within block 150 the second
+  // observation (ether=999) is the later tx = the end-of-block state the archive
+  // stEthPerToken()@150 reflects (the same state fetchRebaseAt's logs[last] uses).
+  const rebases = [
+    reb(90n, 110n, 100n), // seed (last <= startBlock)
+    reb(150n, 120n, 100n), // earlier tx in block 150
+    reb(150n, 999n, 100n), // LATER tx in block 150 = end-of-block
+  ];
+  const result = buildRateCurve(rebases, 100n, 200n);
+  assert.ok(result.ok);
+  const at150 = result.value.find((p) => p.rebaseBlock === 150n);
+  assert.ok(at150, "block 150 must be in the curve");
+  assert.equal(at150!.rate1e18, rateFromRebase(999n, 100n)); // last, not first (120)
 });
 
 test("rejects a zero-shares rebase loudly (never divides by zero)", () => {

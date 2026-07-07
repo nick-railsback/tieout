@@ -36,9 +36,20 @@ export function rateFromRebase(postTotalEther: bigint, postTotalShares: bigint):
 
 /**
  * Build the canonical rate curve over `[startBlock, endBlock]`. Dedups rebases
- * by block, keeps the seed (last rebase `≤ startBlock`) plus every rebase in
- * `(startBlock, endBlock]`, and emits them in strictly-increasing block order
- * (as `validateManifest` requires). Rebases after `endBlock` are excluded.
+ * by block keeping the LAST observation per block, keeps the seed (last rebase
+ * `≤ startBlock`) plus every rebase in `(startBlock, endBlock]`, and emits them
+ * in strictly-increasing block order (as `validateManifest` requires). Rebases
+ * after `endBlock` are excluded.
+ *
+ * Per-block dedup keeps the LAST observation (input arrives ascending by
+ * `(block, logIndex)`, so the last is the later tx = END-of-block state). This
+ * matches `fetchRebaseAt`'s `logs[last]` seed AND the AD-6 archive cross-check,
+ * which reads `stEthPerToken()` at end-of-block: a first-vs-last split would make
+ * two-rebases-in-one-block emit a rate the archive read never agrees with, a
+ * false `RateDivergence` (code-review 2026-07-07 #5). Behaviourally identical on
+ * every input Lido's one-rebase-per-~24h cadence can produce (so no
+ * `engineVersion` bump — all goldens are provably unaffected); this removes the
+ * latent dependency on that external cadence.
  */
 export function buildRateCurve(
   rebases: readonly RebaseObservation[],
@@ -50,7 +61,7 @@ export function buildRateCurve(
     if (rebase.postTotalShares === 0n) {
       return err({ kind: "zero-shares", rebaseBlock: rebase.rebaseBlock });
     }
-    if (!byBlock.has(rebase.rebaseBlock)) byBlock.set(rebase.rebaseBlock, rebase);
+    byBlock.set(rebase.rebaseBlock, rebase); // last per block wins (end-of-block)
   }
 
   const sorted = [...byBlock.values()].sort((a, b) =>
