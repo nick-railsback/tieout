@@ -176,3 +176,75 @@ test("returns a typed version-skew error when the manifest engineVersion drifts 
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.error.code, "version-skew");
 });
+
+// Code-review 2026-07-07, finding #1 (CONFIRMED): the reward axis credits the
+// FULL-WINDOW rate growth (rateEnd − rateStart) to the closing share balance
+// with NO per-lot proration (recon.ts). Under the AD-20 window contract every
+// lot is acquired in-window, so a lot bought AFTER the window's only rebase
+// earned nothing from it — yet the engine still credits it the full growth,
+// producing a reward figure honest books (booking 0) will not match. This is a
+// KNOWN v0.1.0 coarse-formula simplification, faithful to the AD-20 / spine
+// reward-axis definition ("chain rate-curve growth vs bookedReward") and to the
+// golden's `bookedReward`; the resolution was to DOCUMENT it (recon.ts reward
+// comment + deferred-work.md), not to change the hash-bearing math. This test
+// PINS the coarse behavior so any future move to proration is a deliberate,
+// engineVersion-bumped decision — never silent drift.
+test("known v0.1.0 simplification: reward credits full-window growth to post-rebase shares (review #1)", () => {
+  const rawManifest = loadJson("manifest.json") as Record<string, unknown>;
+  // A single in-window rate step 1.0 → 1.1 at block 21050000, seeded at 1.0 so
+  // rateAt(startBlock) = 1.0e18 and rateAt(endBlock) = 1.1e18.
+  rawManifest["rateCurve"] = [
+    { rebaseBlock: "20999000", rate1e18: "1000000000000000000" },
+    { rebaseBlock: "21050000", rate1e18: "1100000000000000000" },
+  ];
+  // The subject's ONLY wstETH acquisition is at block 21060000 — strictly AFTER
+  // the only rebase (21050000), so economically it earned zero in-window reward.
+  rawManifest["events"] = [
+    {
+      type: "Transfer",
+      address: "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+      blockNumber: "21060000",
+      txIndex: "5",
+      logIndex: "9",
+      blockHash: `0x${"b3".repeat(32)}`,
+      txHash: `0x${"a3".repeat(32)}`,
+      from: "0x2222222222222222222222222222222222222222",
+      to: "0xda7a000000000000000000000000000000000000",
+      value: "100000000000000000000",
+    },
+  ];
+  const manifestResult = validateManifest(rawManifest);
+  assert.ok(manifestResult.ok);
+  if (!manifestResult.ok) return;
+
+  const rawLedger = loadJson("ledger.json") as Record<string, unknown>;
+  rawLedger["lots"] = [
+    {
+      lotId: "L1",
+      acquisitionBlock: "21060000",
+      shares: "100000000000000000000",
+      costBasisUsd: "250000000000",
+    },
+  ];
+  // Honest books: the shares were bought after the only rebase → 0 reward.
+  rawLedger["bookedReward"] = "0";
+  const ledgerResult = validateLedger(rawLedger);
+  assert.ok(ledgerResult.ok);
+  if (!ledgerResult.ok) return;
+
+  const result = recon(manifestResult.value, ledgerResult.value);
+  assert.ok(result.ok);
+  if (!result.ok) return;
+  const { reward } = result.value.report.axes;
+
+  // rateGrowth = 1.1e18 − 1.0e18 = 1e17; onchainShares = 100e18.
+  // onchainReward = 100e18 * 1e17 / 1e18 = 10e18 — the full-window credit, applied
+  // in full even though the shares post-date the only rebase (the KNOWN coarse
+  // behavior this finding named).
+  assert.equal(reward.onchain, 10_000_000_000_000_000_000n);
+  // Against honest books (bookedReward 0) that surfaces a FALSE +10e18 reward
+  // discrepancy — documented as a v0.1.0 simplification, not treated as a defect.
+  assert.equal(reward.ledger, 0n);
+  assert.equal(reward.delta, 10_000_000_000_000_000_000n);
+  assert.equal(reward.tieOut, false);
+});

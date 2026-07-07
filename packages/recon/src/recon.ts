@@ -296,6 +296,19 @@ export function recon(
   // compute reward on an unreconciled base. (In a monotonic-rate window both are
   // non-negative; slashing — a decreasing rate — making rateGrowth negative is a
   // Batch-2 concern, see the deferred review follow-up.)
+  //
+  // KNOWN v0.1.0 COARSE-FORMULA SIMPLIFICATION (code-review 2026-07-07 #1): this
+  // applies the FULL-WINDOW rate growth to the CLOSING share balance with no
+  // per-lot proration from each lot's acquisition-time rate. Because AD-20's
+  // window contract admits only in-window acquisitions, a lot bought AFTER the
+  // window's only rebase earned nothing from it, yet is still credited full
+  // growth — so honest books booking 0 for it show a reward discrepancy that is
+  // an artifact of this coarse definition, not a real tie-out break. This is the
+  // literal AD-20 / spine reward-axis definition ("chain rate-curve growth vs
+  // bookedReward"), and the golden `bookedReward` is authored to it. Per-lot
+  // proration is hash-moving (engineVersion bump + golden regen) and deferred —
+  // see implementation-artifacts/deferred-work.md; the characterization test
+  // "known v0.1.0 simplification …" in recon.test.ts pins this behavior.
   const onchainReward = (onchainShares * rateGrowth) / RATE_SCALE;
   const rewardDelta = onchainReward - ledger.bookedReward;
 
