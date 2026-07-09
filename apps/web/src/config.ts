@@ -32,12 +32,14 @@ export const WS_RECONNECT_DELAY_MS = 2_000;
  */
 export const LIVE_READ_FAILURE_LIMIT = 3;
 
-/** Chain the AttestationRegistry anchor is read on. Default Base mainnet (8453);
- * its registry is not deployed yet, so the anchor panel degrades gracefully to
- * "not yet anchored" until the maintainer sets `VITE_ANCHOR_CHAIN_ID` (e.g.
- * 84532 Base Sepolia, or 31337 for a local Anvil demo). A malformed value (a
- * typo like `base`, or an empty string) falls back to 8453 rather than silently
- * rendering "chain NaN"/"chain 0" as a legitimate state. */
+/** Chain the AttestationRegistry anchor is read on. Default Base mainnet (8453),
+ * where the registry is deployed and source-verified (deploy record fd25e2a) and
+ * the slice report hash is attested; `VITE_ANCHOR_CHAIN_ID` remains a demo knob
+ * for repointing at Base Sepolia (84532) or a local Anvil (31337); a chain with
+ * no registry entry still degrades gracefully to an honest "not deployed"
+ * render (AD-14). A malformed value (a typo like `base`, or an empty string)
+ * falls back to 8453 rather than silently rendering "chain NaN"/"chain 0" as a
+ * legitimate state. */
 const ANCHOR_CHAIN_ID_DEFAULT = 8453;
 function resolveAnchorChainId(raw: string | undefined): number {
   const parsed = Number(raw);

@@ -3,7 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createShell, type ShellDeps, type ShellDom, type ShellElement } from "../src/shell.ts";
-import { HONESTY_BOUNDARY, REPORT_EXPLAINERS, type AnchorState } from "../src/view.ts";
+import {
+  ANCHOR_CONTRAST,
+  HONESTY_BOUNDARY,
+  REPORT_EXPLAINERS,
+  type AnchorState,
+} from "../src/view.ts";
 import { REPORTS } from "../src/config.ts";
 
 // Health-audit Testing finding (TEST-2): main.ts — the whole web shell, where
@@ -194,13 +199,15 @@ test("CAP-2: mount paints the labels, honesty copy, and the default explainer", 
   // mount no longer paints a static note — the default load's synchronous entry
   // paint owns it, so the slice explainer must be up before any fetch settles.
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice);
+  // The anchor contrast line rides the same synchronous entry paint (CAP-6).
+  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.slice);
   for (const [key, report] of Object.entries(REPORTS)) {
     const button = dom.querySelector(`button[data-report="${key}"]`);
     assert.equal(button?.textContent, report.label, `${key} toggle label`);
   }
 });
 
-test("CAP-2: the report note repaints per toggle and the last click wins", async () => {
+test("CAP-2: the report note and anchor contrast repaint per toggle and the last click wins", async () => {
   const dom = new FakeDom();
   // Gate golden's fetch so its continuation provably runs AFTER a newer slice
   // click — a real supersession, not just synchronous call order.
@@ -219,22 +226,47 @@ test("CAP-2: the report note repaints per toggle and the last click wins", async
   // the click, not the fetch (which for golden is still gated).
   const first = shell.loadReport("golden");
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.golden);
+  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.golden);
 
   // A second click supersedes golden mid-flight. Its fetch fails (slice always
   // fails in these deps), yet the note still shows the selected explainer.
   const second = shell.loadReport("slice");
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice, "last click must win");
+  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.slice, "contrast follows the click");
   await second;
   assert.equal(dom.text("report-status"), "load failed");
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice);
+  // The contrast line describes design intent, not read results — it survives
+  // the failed fetch exactly like the report note (CAP-6).
+  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.slice);
 
   // Now let golden's fetch succeed late: the superseded continuation must not
   // repaint anything — not the note, not the hash, not the failed badge.
   releaseGolden();
   await first;
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice, "late settle must not repaint");
+  assert.equal(
+    dom.text("anchor-contrast"),
+    ANCHOR_CONTRAST.slice,
+    "late settle must not repaint the contrast line",
+  );
   assert.equal(dom.text("report-status"), "load failed", "superseded load must not win");
   assert.equal(dom.text("report-hash"), "—", "superseded load must not paint its hash");
+});
+
+test("CAP-6: an anchor read error leaves the contrast line untouched", async () => {
+  // Spec I/O row 4: the contrast line describes design intent, not read
+  // results — a failed registry read must not blank or rewrite it.
+  const dom = new FakeDom();
+  const deps = makeDeps(dom);
+  const shell = createShell({
+    ...deps,
+    readAnchorFn: async () => ({ kind: "error", chainId: 8453, message: "boom" }),
+  });
+
+  await shell.loadReport("golden");
+  assert.equal(dom.text("anchor-status"), "Anchor read failed");
+  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.golden);
 });
 
 test("UX-2: an initial load failure clears the hard-coded 'connecting…' badge", async () => {

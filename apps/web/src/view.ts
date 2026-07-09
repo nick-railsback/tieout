@@ -49,6 +49,19 @@ export const REPORT_EXPLAINERS: Record<ReportKey, string> = {
     "This report reconciles a real mainnet wstETH wallet over a pinned window of finalized blocks — the chain side re-derived entirely from public data, the ledger side taken from the books. The ledger deliberately carries an injected reward discrepancy, so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.",
 };
 
+/** Per-report anchor contrast lines, repainted with the toggle (CAP-6). One
+ * anchor panel serves two reports with opposite anchor states — without this
+ * line the golden report's honest “Not yet anchored” reads as product failure.
+ * The copy explains design intent only; the anchor itself still proves a
+ * timestamp, never correctness or identity (AD-14 — `ANCHOR_NOTE` carries that
+ * boundary). */
+export const ANCHOR_CONTRAST: Record<ReportKey, string> = {
+  golden:
+    "This report’s hash was deliberately never attested — a synthetic fixture has nothing worth anchoring. The two demo reports land in different anchor states on purpose: this panel reads real Base chain state on every visit instead of hardcoding a green badge.",
+  slice:
+    "This report’s hash was attested on Base when v0.1.0 shipped. Whatever record this panel shows is read live from the registry on every visit — nothing here is baked into the page.",
+};
+
 /** Render a signed USD bigint at its declared scale as `"$1.23"` / `"-$1.23"`. */
 function usd(value: bigint, usdDecimals: bigint): string {
   const negative = value < 0n;

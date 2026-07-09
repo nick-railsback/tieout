@@ -18,6 +18,7 @@ import { startLivePositions, type LivePositionsHandle, type LiveStatus } from ".
 import {
   anchorViewModel,
   HONESTY_BOUNDARY,
+  ANCHOR_CONTRAST,
   ANCHOR_NOTE,
   REPORT_EXPLAINERS,
   livePositionViewModel,
@@ -217,6 +218,10 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
     // the note always matches the last-clicked toggle, even while a fetch is
     // still in flight or after it fails (CAP-2).
     setText("report-note", REPORT_EXPLAINERS[key]);
+    // The anchor contrast line is design commentary keyed to the selection, not
+    // a read result — it paints in the same synchronous block and stays put even
+    // when the anchor read itself errors (CAP-6).
+    setText("anchor-contrast", ANCHOR_CONTRAST[key]);
 
     liveHandle?.stop();
     liveHandle = undefined;

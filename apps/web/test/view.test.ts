@@ -6,6 +6,7 @@ import { formatUnits } from "viem";
 import { parseReportJson, type Report } from "@tieout/recon";
 import {
   anchorViewModel,
+  ANCHOR_CONTRAST,
   ANCHOR_NOTE,
   HONESTY_BOUNDARY,
   REPORT_EXPLAINERS,
@@ -50,6 +51,33 @@ test("CAP-2 — the per-report explainers tell a stranger what each demo is", ()
   for (const explainer of [REPORT_EXPLAINERS.golden, REPORT_EXPLAINERS.slice]) {
     assert.match(explainer, /always-green signal/i);
     assert.match(explainer, /never a hand-built/i);
+  }
+});
+
+test("CAP-6 — the anchor contrast lines explain the golden/slice split without overclaiming", () => {
+  // Golden: the un-attested state is deliberate, and the panel reads real chain
+  // state — never framed as a failure.
+  assert.match(ANCHOR_CONTRAST.golden, /deliberate/i);
+  assert.match(ANCHOR_CONTRAST.golden, /real .*chain state/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /fail|broken|error/i);
+  // Slice: attested at release; the record is read live, not baked in.
+  assert.match(ANCHOR_CONTRAST.slice, /attested on Base/i);
+  assert.match(ANCHOR_CONTRAST.slice, /read live/i);
+  // Discrimination, both directions: only golden owns the never-attested
+  // framing, only slice claims an attestation.
+  assert.match(ANCHOR_CONTRAST.golden, /never attested/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /never attested/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /attested on Base/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /synthetic/i);
+  assert.notEqual(ANCHOR_CONTRAST.golden, ANCHOR_CONTRAST.slice);
+  // The lines describe design intent only — painted unconditionally, they must
+  // never quote a concrete badge state the panel might not be showing (the
+  // anchor read can error; the reset path blanks the badge to "—").
+  for (const line of [ANCHOR_CONTRAST.golden, ANCHOR_CONTRAST.slice]) {
+    assert.doesNotMatch(line, /not yet anchored|anchor read failed|above|beside/i);
+    // AD-14: neither line lets the anchor prove correctness or identity — that
+    // boundary stays with ANCHOR_NOTE (pinned in AC-5.2.b above).
+    assert.doesNotMatch(line, /correct|identity|books|author/i);
   }
 });
 
