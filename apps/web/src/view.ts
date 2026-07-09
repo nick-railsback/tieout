@@ -42,11 +42,15 @@ export const ANCHOR_NOTE =
  * live position + the closing-balance check, never a hand-built reconciled
  * report (AC-5.2.b honesty). Both are real engine output; only the inputs
  * differ. */
+/** The honesty framing both explainers share (AC-5.2.b) — one constant so the
+ * two demos can never state divergent honesty claims (review 2026-07-09 #5),
+ * matching how `HONESTY_BOUNDARY` and `ANCHOR_NOTE` are single constants. */
+export const EXPLAINER_HONESTY_TAIL =
+  "so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.";
+
 export const REPORT_EXPLAINERS: Record<ReportKey, string> = {
-  golden:
-    "This report reconciles a fully synthetic, hand-authored fixture: its 150 wstETH position belongs to the vanity address 0xda7a…0000 and exists nowhere on mainnet. Its books deliberately under-record the staking reward by 0.5 stETH, so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.",
-  slice:
-    "This report reconciles a real mainnet wstETH wallet over a pinned window of finalized blocks — the chain side re-derived entirely from public data, the ledger side taken from the books. The ledger deliberately carries an injected reward discrepancy, so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.",
+  golden: `This report reconciles a fully synthetic, hand-authored fixture: its 150 wstETH position belongs to the vanity address 0xda7a…0000 and exists nowhere on mainnet. Its books deliberately under-record the staking reward by 0.5 stETH, ${EXPLAINER_HONESTY_TAIL}`,
+  slice: `This report reconciles a real mainnet wstETH wallet over a pinned window of finalized blocks — the chain side re-derived entirely from public data, the ledger side taken from the books. The ledger deliberately carries an injected reward discrepancy, ${EXPLAINER_HONESTY_TAIL}`,
 };
 
 /** Per-report anchor contrast lines, repainted with the toggle (CAP-6). One
@@ -57,9 +61,9 @@ export const REPORT_EXPLAINERS: Record<ReportKey, string> = {
  * boundary). */
 export const ANCHOR_CONTRAST: Record<ReportKey, string> = {
   golden:
-    "This report’s hash was deliberately never attested — a synthetic fixture has nothing worth anchoring. The two demo reports land in different anchor states on purpose: this panel reads real Base chain state on every visit instead of hardcoding a green badge.",
+    "This report’s hash was deliberately never attested — a synthetic fixture has nothing worth anchoring. The two demo reports land in different anchor states on purpose: this panel reads real chain state instead of hardcoding a green badge.",
   slice:
-    "This report’s hash was attested on Base when v0.1.0 shipped. Whatever record this panel shows is read live from the registry on every visit — nothing here is baked into the page.",
+    "The slice demo’s report hash was attested onchain at the v0.1.0 release. Whatever record this panel shows is read live from the registry — nothing here is baked into the page.",
 };
 
 /** Render a signed USD bigint at its declared scale as `"$1.23"` / `"-$1.23"`. */

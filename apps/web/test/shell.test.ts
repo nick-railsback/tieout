@@ -236,20 +236,17 @@ test("CAP-2: the report note and anchor contrast repaint per toggle and the last
   await second;
   assert.equal(dom.text("report-status"), "load failed");
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice);
-  // The contrast line describes design intent, not read results — it survives
-  // the failed fetch exactly like the report note (CAP-6).
-  assert.equal(dom.text("anchor-contrast"), ANCHOR_CONTRAST.slice);
+  // On a failed load no registry read is ever attempted, so the contrast line's
+  // live-read claim must not stand over the blanked panel — reset clears it
+  // (review 2026-07-09 #1); the next successful load repaints it.
+  assert.equal(dom.text("anchor-contrast"), "", "no live-read claim over a blanked panel");
 
   // Now let golden's fetch succeed late: the superseded continuation must not
   // repaint anything — not the note, not the hash, not the failed badge.
   releaseGolden();
   await first;
   assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice, "late settle must not repaint");
-  assert.equal(
-    dom.text("anchor-contrast"),
-    ANCHOR_CONTRAST.slice,
-    "late settle must not repaint the contrast line",
-  );
+  assert.equal(dom.text("anchor-contrast"), "", "late settle must not repaint the contrast line");
   assert.equal(dom.text("report-status"), "load failed", "superseded load must not win");
   assert.equal(dom.text("report-hash"), "—", "superseded load must not paint its hash");
 });

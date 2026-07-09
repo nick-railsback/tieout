@@ -8,6 +8,7 @@ import {
   anchorViewModel,
   ANCHOR_CONTRAST,
   ANCHOR_NOTE,
+  EXPLAINER_HONESTY_TAIL,
   HONESTY_BOUNDARY,
   REPORT_EXPLAINERS,
   livePositionViewModel,
@@ -30,10 +31,10 @@ test("AC-5.2.b — the honesty boundary is present and does not overclaim", () =
 });
 
 test("CAP-2 — the per-report explainers tell a stranger what each demo is", () => {
-  // Golden is a made-up fixture and says so: synthetic, the 150 wstETH exists
-  // nowhere on mainnet, and its reward break is deliberate.
+  // Golden is a made-up fixture and says so: synthetic, with a deliberate
+  // reward break. (Its figures are pinned by the fixture-tether test below —
+  // no hand-synced literals here; review 2026-07-09 #6.)
   assert.match(REPORT_EXPLAINERS.golden, /synthetic/i);
-  assert.match(REPORT_EXPLAINERS.golden, /150 wstETH/);
   assert.match(REPORT_EXPLAINERS.golden, /deliberate/i);
   assert.match(REPORT_EXPLAINERS.golden, /reward/i);
   // Slice is a real mainnet wallet over a pinned finalized window, with a
@@ -45,12 +46,13 @@ test("CAP-2 — the per-report explainers tell a stranger what each demo is", ()
   // just each report's own claim (a lax regex tweak must not pass on both).
   assert.doesNotMatch(REPORT_EXPLAINERS.golden, /real mainnet/i);
   assert.doesNotMatch(REPORT_EXPLAINERS.slice, /synthetic/i);
-  // Review fix #3's honesty framing survives in both: the everyday always-green
-  // signal is the live position + the closing-balance check, never a hand-built
-  // "all clear".
+  // Review fix #3's honesty framing survives in both — as ONE shared constant,
+  // so the two demos can never state divergent honesty claims (review
+  // 2026-07-09 #5).
+  assert.match(EXPLAINER_HONESTY_TAIL, /always-green signal/i);
+  assert.match(EXPLAINER_HONESTY_TAIL, /never a hand-built/i);
   for (const explainer of [REPORT_EXPLAINERS.golden, REPORT_EXPLAINERS.slice]) {
-    assert.match(explainer, /always-green signal/i);
-    assert.match(explainer, /never a hand-built/i);
+    assert.ok(explainer.endsWith(EXPLAINER_HONESTY_TAIL), "honesty tail diverged");
   }
 });
 
@@ -60,14 +62,19 @@ test("CAP-6 — the anchor contrast lines explain the golden/slice split without
   assert.match(ANCHOR_CONTRAST.golden, /deliberate/i);
   assert.match(ANCHOR_CONTRAST.golden, /real .*chain state/i);
   assert.doesNotMatch(ANCHOR_CONTRAST.golden, /fail|broken|error/i);
-  // Slice: attested at release; the record is read live, not baked in.
-  assert.match(ANCHOR_CONTRAST.slice, /attested on Base/i);
+  // Slice: attested at release (a historical fact that can't go stale — the
+  // badge carries the CURRENT status; review 2026-07-09 #2); the record is
+  // read live, not baked in. No chain name in prose: the chain id is a build
+  // knob and the badge/detail already carry it.
+  assert.match(ANCHOR_CONTRAST.slice, /attested onchain at the v0\.1\.0 release/i);
   assert.match(ANCHOR_CONTRAST.slice, /read live/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /\bBase\b/);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /\bBase\b/);
   // Discrimination, both directions: only golden owns the never-attested
   // framing, only slice claims an attestation.
   assert.match(ANCHOR_CONTRAST.golden, /never attested/i);
   assert.doesNotMatch(ANCHOR_CONTRAST.slice, /never attested/i);
-  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /attested on Base/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /v0\.1\.0/);
   assert.doesNotMatch(ANCHOR_CONTRAST.slice, /synthetic/i);
   assert.notEqual(ANCHOR_CONTRAST.golden, ANCHOR_CONTRAST.slice);
   // The lines describe design intent only — painted unconditionally, they must

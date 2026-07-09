@@ -145,7 +145,7 @@ forge test --root packages/contracts  # Solidity suites (Foundry)
 `verify` at the committed demo fixture (a *real* mainnet wallet over a pinned 255-block
 window, with a deliberately injected 1-gwei bookkeeping error so the discrepancy path is
 exercised). You need a mainnet **archive** RPC — a provider that can answer "what was the
-state at block X" for old blocks; free tiers include this:
+state at block X" for old blocks; most free tiers include this:
 
 ```bash
 ETH_RPC_URL=<mainnet-archive-rpc-url> \

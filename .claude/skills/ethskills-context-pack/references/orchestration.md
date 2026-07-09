@@ -222,7 +222,7 @@ packages/
 - **SE2 Docs:** https://docs.scaffoldeth.io/
 - **SE2 Skill:** https://docs.scaffoldeth.io/SKILL.md
 - **UI Components:** https://ui.scaffoldeth.io/
-- **SE2 AGENTS.md:** https://github.com/scaffold-eth/scaffold-eth-2/blob/main/AGENTS.md
+- **SE2 AGENTS.md:** https://github.com/scaffold-eth/scaffold-eth-2/blob/78ed3e8f19d2b64373bc1b9a9f28b0a9de3a65f2/AGENTS.md
 
 ---
 

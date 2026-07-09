@@ -189,6 +189,10 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
     el("report-axes").replaceChildren();
     setBadge("anchor-status", "—", "neutral");
     setText("anchor-detail", "—");
+    // The contrast line claims a live registry read; on a failed load no read is
+    // ever attempted, so the claim must not stand over a blanked panel (review
+    // 2026-07-09 #1). The next successful load's entry paint restores it.
+    setText("anchor-contrast", "");
   }
 
   /** Read + paint the Base anchor for a report hash (graceful when undeployed).

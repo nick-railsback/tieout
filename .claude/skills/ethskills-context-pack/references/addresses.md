@@ -422,7 +422,7 @@ Tokenizes future yield into PT (Principal Token) and YT (Yield Token). Core inva
 | Yield Contract Factory V3 | `0xEb38531db128EcA928aea1B1CE9E5609B15ba146` | ✅ Verified |
 | Yield Contract Factory V4 | `0xc7F8F9F1DdE1104664b6fC8F33E49b169C12F41E` | ✅ Verified |
 
-Source: [pendle-finance/pendle-core-v2-public](https://github.com/pendle-finance/pendle-core-v2-public/blob/main/deployments/42161-core.json)
+Source: [pendle-finance/pendle-core-v2-public](https://github.com/pendle-finance/pendle-core-v2-public/blob/e8c2cca4c9b329ba8a383a27d7318e5f8b35c843/deployments/42161-core.json)
 
 ### Camelot (Arbitrum) — Native DEX
 

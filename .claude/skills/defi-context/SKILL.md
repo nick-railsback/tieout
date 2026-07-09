@@ -44,7 +44,7 @@ Every reference is filename-prefixed by its source slug — `<source-slug>-<topi
 
 A `Tags` column on each catalog row marks references that span multiple sources (`cross-cutting`) or call out unusual entry points. Use tags to triangulate when a question doesn't cleanly belong to one source — a `cross-cutting` row usually links sideways via the reference's `## See also` block.
 
-See [`02-artifact-contract.md`](https://github.com/nick-railsback/skill-engine/blob/main/plugin/skill-engine/docs/02-artifact-contract.md) for the filename-prefix-discrimination contract.
+See [`02-artifact-contract.md`](https://github.com/nick-railsback/skill-engine/blob/711e3144e1ad81b50414667b9b5e3c0363989955/plugin/skill-engine/docs/02-artifact-contract.md) for the filename-prefix-discrimination contract.
 
 ## How to follow source links
 
@@ -133,4 +133,4 @@ When a reference includes a page-number pointer, follow it only when the referen
 
 This navigator MAY ship an optional `SKILL.json` sibling alongside this `SKILL.md` for machine-readable consumers (opt-in additive — contextualizers without it pass verification unchanged). When present, per-source `## Catalog: <source-slug>` rows above, SKILL.json `catalog[]` entries, and `references/<source-slug>-*.md` files must stay in three-way correspondence. Entries carrying `"draft": true` in SKILL.json are excluded from the trijection and surface as a one-line summary at verify time. The `skill-json-trijection` named check fires only when SKILL.json is present; absence is a silent-skip pass.
 
-Full schema: see [`02-artifact-contract.md`](https://github.com/nick-railsback/skill-engine/blob/main/plugin/skill-engine/docs/02-artifact-contract.md) §"SKILL.json".
+Full schema: see [`02-artifact-contract.md`](https://github.com/nick-railsback/skill-engine/blob/711e3144e1ad81b50414667b9b5e3c0363989955/plugin/skill-engine/docs/02-artifact-contract.md) §"SKILL.json".

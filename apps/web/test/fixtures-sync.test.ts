@@ -49,3 +49,36 @@ test("web golden hash equals the recon golden reportHash.txt", () => {
   const recon = read(join(FIXTURES, "golden", "reportHash.txt")).trim();
   assert.equal(web, recon);
 });
+
+// Review 2026-07-09 #3/#4 — the same DRY class as the fixtures above, but for
+// COPY: the verify command and the deliberately-not-built list are hand-written
+// on both the pinned page and the README, with the page linking the README as
+// "the long version". These constants are the single source; both files must
+// carry them verbatim, so a change in either fails loudly here instead of
+// shipping a diverged immutable pin.
+
+const ROOT = join(import.meta.dirname, "..", "..", "..");
+const decodeEntities = (html: string) =>
+  html.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
+const collapse = (s: string) => s.replace(/\s+/g, " ");
+
+const VERIFY_COMMAND = `ETH_RPC_URL=<mainnet-archive-rpc-url> \\
+  pnpm --filter @tieout/recon verify \\
+  fixtures/slice/report.json fixtures/slice/ledger.json`;
+
+const PARKED_LIST =
+  "wallet connect, client-side report generation, in-browser verify, downloadable reports, address lookup";
+
+test("the verify command is identical on the page and in the README", () => {
+  const page = decodeEntities(read(join(import.meta.dirname, "..", "index.html")));
+  const readme = read(join(ROOT, "README.md"));
+  assert.ok(page.includes(VERIFY_COMMAND), "index.html verify command drifted");
+  assert.ok(readme.includes(VERIFY_COMMAND), "README verify command drifted");
+});
+
+test("the deliberately-not-built list is identical on the page and in the README", () => {
+  const page = collapse(read(join(import.meta.dirname, "..", "index.html")));
+  const readme = collapse(read(join(ROOT, "README.md")));
+  assert.ok(page.includes(PARKED_LIST), "index.html parked list drifted");
+  assert.ok(readme.includes(PARKED_LIST), "README parked list drifted");
+});
