@@ -64,6 +64,14 @@
       ul.narration { margin: 8px 0 0; padding-left: 18px; }
       ul.narration li { margin: 4px 0; }
       .note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+      .note a { color: var(--accent); text-decoration: none; }
+      .note a:hover, .note a:focus-visible { text-decoration: underline; }
+      pre.cmd {
+        margin: 10px 0 0; padding: 12px 14px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--bg);
+        font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+        overflow-x: auto;
+      }
       .headline { font-size: 15px; margin: 2px 0 10px; }
     </style>
   </head>
@@ -114,6 +122,33 @@
         <div class="row"><span class="k">Unrealized P/L</span><span class="mono" id="report-pnl">—</span></div>
         <div class="row"><span class="k">Window</span><span class="mono" id="report-window">—</span></div>
         <div class="row"><span class="k">Report hash</span><span class="mono" id="report-hash">—</span></div>
+      </section>
+
+      <section id="verify" aria-labelledby="verify-h">
+        <h2 id="verify-h">Reproduce it yourself · the auditor’s path</h2>
+        <p class="headline">
+          Don’t take this page’s word for it. One command re-downloads the public chain
+          data, rebuilds the reconciliation, and must reproduce the slice report’s exact
+          hash — on your machine, without trusting this page or the report’s author.
+        </p>
+        <pre class="cmd" tabindex="0" role="region" aria-label="verify command"><code>git clone https://github.com/nick-railsback/tieout &amp;&amp; cd tieout
+pnpm install &amp;&amp; pnpm -r build
+ETH_RPC_URL=&lt;mainnet-archive-rpc-url&gt; \
+  pnpm --filter @tieout/recon verify \
+  fixtures/slice/report.json fixtures/slice/ledger.json</code></pre>
+        <p class="note">
+          Prereqs: Node 24 and pnpm (<span class="mono">corepack enable</span>). Needs a
+          mainnet <strong>archive</strong> RPC — a provider that can answer “what was the
+          state at block X” for old blocks; free tiers include this. Exit code 0 means
+          byte-identical reproduction; any failure is a clean one-line typed error.
+          <a
+            href="https://github.com/nick-railsback/tieout#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Full walkthrough in the README (opens in a new tab)"
+            >Full walkthrough in the README<span aria-hidden="true"> ↗</span></a
+          >.
+        </p>
       </section>
 
       <section id="anchor" aria-labelledby="anchor-h">
