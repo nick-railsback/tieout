@@ -92,6 +92,17 @@
         >
       </header>
 
+      <p class="headline" id="framing" style="margin: 20px 0 0">
+        tieout rebuilds an onchain wstETH position — a token representing staked
+        ETH — from public blockchain data alone, checks it against an accounting
+        ledger, and produces a report that anyone holding the same ledger file
+        can reproduce byte-for-byte. It’s built for compliance and audit people
+        who need verification that doesn’t rest on trusting the reporter. This
+        page demonstrates the pipeline end-to-end: a position read live from
+        mainnet, two demo reconciliations, and a tamper-evidence anchor read
+        live from Base.
+      </p>
+
       <p class="banner" id="honesty-banner" aria-live="polite"></p>
 
       <div class="toggle" role="group" aria-label="Which report to view">
@@ -157,6 +168,29 @@ ETH_RPC_URL=&lt;mainnet-archive-rpc-url&gt; \
         <p id="anchor-detail" class="headline">—</p>
         <p class="note" id="anchor-contrast"></p>
         <p class="note" id="anchor-note"></p>
+      </section>
+
+      <section id="next" aria-labelledby="next-h">
+        <h2 id="next-h">Where this goes next</h2>
+        <p class="headline">
+          The natural expansion directions are continuous monitoring, multiple
+          addresses, and more asset types. A second set is deliberately not
+          built — wallet connect, client-side report generation, in-browser
+          verify, downloadable reports, address lookup. Some are parked on plain
+          scope discipline; the rest would have tieout act on a visitor’s
+          behalf, making it a trusted intermediary — the exact role it exists to
+          eliminate.
+        </p>
+        <p class="note">
+          The long version lives in
+          <a
+            href="https://github.com/nick-railsback/tieout#roadmap"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="README roadmap (opens in a new tab)"
+            >the README roadmap<span aria-hidden="true"> ↗</span></a
+          >.
+        </p>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>

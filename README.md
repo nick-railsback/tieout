@@ -225,6 +225,12 @@ to cheat it:
   `tieout.eth` ENS name — content-addressed hosting for a hash-addressed report.
 - **Then:** the indexer read-back and the continuous "CI for compliance" runner,
   multi-address aggregation, more asset types (tokenized treasuries, stablecoins).
+- **Deliberately not built:** wallet connect, client-side report generation, in-browser
+  verify, downloadable reports, address lookup. Some are parked on plain scope
+  discipline (a solo maintainer, a tax-adjacent domain); the rest would have tieout act
+  on a visitor's behalf — a *trusted intermediary*, the exact role the product exists to
+  eliminate. The demand signals behind them are recorded, and they'll be revisited
+  deliberately, not by accretion.
 - **Vision (not built):** a **zero-knowledge proof of correct reconciliation** —
   verifiable by anyone, revealing nothing — and an **open attestation standard** auditors
   could coalesce around. The report is already Merkle-shaped so ZK can be added without
