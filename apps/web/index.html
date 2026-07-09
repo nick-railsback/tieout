@@ -25,8 +25,11 @@
         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
       }
       main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+      header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
       header h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
       header p { margin: 0; color: var(--muted); }
+      header a.repo { color: var(--accent); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+      header a.repo:hover, header a.repo:focus-visible { text-decoration: underline; }
       .banner {
         margin: 20px 0 24px; padding: 12px 14px; border-radius: 8px;
         border: 1px solid var(--line); background: rgba(88, 166, 255, 0.06);
@@ -67,8 +70,18 @@
   <body>
     <main>
       <header>
-        <h1>tieout</h1>
-        <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
+        <div>
+          <h1>tieout</h1>
+          <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
+        </div>
+        <a
+          class="repo"
+          href="https://github.com/nick-railsback/tieout"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Source on GitHub (opens in a new tab)"
+          >Source on GitHub <span aria-hidden="true">↗</span></a
+        >
       </header>
 
       <p class="banner" id="honesty-banner" aria-live="polite"></p>
