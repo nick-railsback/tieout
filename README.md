@@ -4,11 +4,41 @@
 > can an outsider check that without trusting us?**
 > Tieout answers that question with cryptographic force.
 
-**Status:** 🟢 **v0.1.0 — released.** The engine, verifier, onchain anchor, USD
-valuation, and web surface are built, tested, and deployed — the `AttestationRegistry` is
-live and source-verified on Base mainnet with the demo report anchored onchain (batches 1–6
-of 6, plus two full health audits with all 53 findings remediated). The web surface is served
-at **[tieout.eth.limo](https://tieout.eth.limo)**. Not legal, financial, or tax advice.
+## TL;DR
+
+- **What it is:** Tieout rebuilds a staked-ETH (wstETH) position purely from public
+  blockchain data, ties it out line-by-line against internal books, and emits a report
+  plus its keccak256 hash.
+- **What makes it different:** nobody has to take the report on trust — anyone can
+  reproduce it. One command, `tieout verify`, against a mainnet archive RPC re-derives
+  the exact same hash, byte for byte, on their own machine.
+- **Where it runs:** 🟢 **v0.1.0 — released.** Live at
+  **[tieout.eth.limo](https://tieout.eth.limo)**; the `AttestationRegistry` is deployed
+  and source-verified on Base mainnet with the demo report's hash anchored onchain.
+  (Not legal, financial, or tax advice.)
+- **How fast it shipped:** first commit to mainnet-anchored release in **five days** —
+  check the git history.
+
+## Measured results
+
+Nothing below asks to be believed — each item names where a skeptic checks it:
+
+- **Byte-identical hashes on two independent CI runners, on every push to main and
+  feature branches** — the NFR-0 determinism gate; the `determinism` job in
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) fails red if the runners
+  disagree.
+- **Demo report hash anchored on Base mainnet** (block 48287188) — read it back from the
+  chain in one `eth_call` ([recipe](packages/contracts/README.md)), or see the anchor
+  panel at [tieout.eth.limo](https://tieout.eth.limo).
+- **First commit → mainnet-anchored release in five days** — `git log`: `0fcdbed`
+  (2026-07-02) to `44f0a0a` (2026-07-07).
+- **53 health-audit findings remediated across two full audits** — the second audit's 36
+  fixes are directly in the public history: one conventional commit per finding-cluster,
+  subject citing its finding IDs (`git log --grep` for `REL-`, `SEC-`, `TEST-`), each
+  code fix carrying its regression test in the same commit.
+- **The failure contract is itself pinned by tests** — `verify` exits with a one-line
+  typed error, never a stack trace
+  ([`packages/recon/test/verify.test.ts`](packages/recon/test/verify.test.ts)).
 
 ---
 
@@ -201,11 +231,30 @@ to cheat it:
   reshaping anything. The endgame is making an institution's first onchain audit
   *boring*.
 
-## Provenance
+## Where this came from
 
-Born from a structured design-thinking + adversarial-roundtable session, grounded in the
-Series 65 manual, the State of DeFi 2025 / a16z State of Crypto 2025 reports, and the
-ethskills Ethereum knowledge base.
+Two threads ran in parallel before any of this existed: studying for the Series 65 exam
+(the investment-adviser side of traditional finance) and roughly six years of standing
+interest in the Ethereum ecosystem. I distilled both into context packs with my own
+tooling — a private pack from my exam study materials, and a DeFi pack built from four
+public 2025–2026 reports (the State of DeFi 2025 and a16z's State of Crypto 2025 among
+them).
+
+With both packs loaded, I ran a deliberate opportunity-scouting session: where
+traditional finance meets DeFi, which capabilities that TradFi takes for granted —
+custody, clearing, adviser compliance — still have no good onchain equivalent, and
+which of those gaps could one person realistically start building against? The session
+produced a ranked shortlist; near its top sat custody-rule surprise verification backed
+by independently reproducible onchain evidence. That entry became tieout, and the concept
+was pressure-tested in a structured design-thinking + adversarial-roundtable session
+before any code was written.
+
+Building on Ethereum needed one more grounding layer: Austin Griffith's public
+[ethskills](https://github.com/austintgriffith/ethskills) knowledge base, reduced to a
+context pack, carried the architecture planning. From there the public record tells the
+rest: first commit `0fcdbed` on 2026-07-02, mainnet-anchored v0.1.0 release `44f0a0a` on
+2026-07-07 — **first commit to mainnet-anchored release in five days**, all of it
+verifiable from the git history.
 
 ---
 
