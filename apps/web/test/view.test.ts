@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { formatUnits } from "viem";
 import { parseReportJson, type Report } from "@tieout/recon";
 import {
   anchorViewModel,
   ANCHOR_NOTE,
   HONESTY_BOUNDARY,
-  REPORT_NOTE,
+  REPORT_EXPLAINERS,
   livePositionViewModel,
   reportViewModel,
 } from "../src/view.ts";
@@ -25,10 +26,54 @@ test("AC-5.2.b — the honesty boundary is present and does not overclaim", () =
   // AD-14: the anchor proves a timestamp, not correctness or author identity.
   assert.match(ANCHOR_NOTE, /timestamp/i);
   assert.match(ANCHOR_NOTE, /not an author signature/i);
-  // Review fix #3: the demo note is honest that both committed reports carry the
-  // injected discrepancy and points at the real always-green signal.
-  assert.match(REPORT_NOTE, /injected reward discrepancy/i);
-  assert.match(REPORT_NOTE, /closing-shares axis tie-out/i);
+});
+
+test("CAP-2 — the per-report explainers tell a stranger what each demo is", () => {
+  // Golden is a made-up fixture and says so: synthetic, the 150 wstETH exists
+  // nowhere on mainnet, and its reward break is deliberate.
+  assert.match(REPORT_EXPLAINERS.golden, /synthetic/i);
+  assert.match(REPORT_EXPLAINERS.golden, /150 wstETH/);
+  assert.match(REPORT_EXPLAINERS.golden, /deliberate/i);
+  assert.match(REPORT_EXPLAINERS.golden, /reward/i);
+  // Slice is a real mainnet wallet over a pinned finalized window, with a
+  // deliberately injected discrepancy.
+  assert.match(REPORT_EXPLAINERS.slice, /real .*mainnet/i);
+  assert.match(REPORT_EXPLAINERS.slice, /deliberate/i);
+  assert.match(REPORT_EXPLAINERS.slice, /reward/i);
+  // The copy's whole job is telling the two apart — assert the distinction, not
+  // just each report's own claim (a lax regex tweak must not pass on both).
+  assert.doesNotMatch(REPORT_EXPLAINERS.golden, /real mainnet/i);
+  assert.doesNotMatch(REPORT_EXPLAINERS.slice, /synthetic/i);
+  // Review fix #3's honesty framing survives in both: the everyday always-green
+  // signal is the live position + the closing-balance check, never a hand-built
+  // "all clear".
+  for (const explainer of [REPORT_EXPLAINERS.golden, REPORT_EXPLAINERS.slice]) {
+    assert.match(explainer, /always-green signal/i);
+    assert.match(explainer, /never a hand-built/i);
+  }
+});
+
+test("CAP-2 — the golden explainer's figures are tethered to the shipped fixture", () => {
+  // The prose hardcodes fixture facts; bind them to report.golden.json so a
+  // regenerated fixture can't leave the copy silently lying (review finding).
+  const golden = loadReport("report.golden.json") as {
+    subject: string;
+    axes: {
+      closingShares: { onchain: string };
+      reward: { onchain: string; ledger: string };
+    };
+  };
+  const shares = formatUnits(BigInt(golden.axes.closingShares.onchain), 18);
+  const rewardBreak = formatUnits(
+    BigInt(golden.axes.reward.onchain) - BigInt(golden.axes.reward.ledger),
+    18,
+  );
+  assert.ok(REPORT_EXPLAINERS.golden.includes(`${shares} wstETH`), "closing position drifted");
+  assert.ok(REPORT_EXPLAINERS.golden.includes(`${rewardBreak} stETH`), "reward break drifted");
+  assert.ok(
+    REPORT_EXPLAINERS.golden.includes(golden.subject.slice(0, 6)),
+    "vanity subject drifted",
+  );
 });
 
 test("AC-5.2.a — the slice report view names the breaking event and narrates the cause", () => {

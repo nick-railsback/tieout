@@ -19,7 +19,7 @@ import {
   anchorViewModel,
   HONESTY_BOUNDARY,
   ANCHOR_NOTE,
-  REPORT_NOTE,
+  REPORT_EXPLAINERS,
   livePositionViewModel,
   reportViewModel,
 } from "./view.ts";
@@ -213,6 +213,11 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
     const myGeneration = ++generation;
     const report = REPORTS[key];
 
+    // Paint the selected report's explainer synchronously, before any await —
+    // the note always matches the last-clicked toggle, even while a fetch is
+    // still in flight or after it fails (CAP-2).
+    setText("report-note", REPORT_EXPLAINERS[key]);
+
     liveHandle?.stop();
     liveHandle = undefined;
     setText("live-wsteth", "—");
@@ -283,7 +288,7 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
   function mount(): void {
     setText("honesty-banner", HONESTY_BOUNDARY);
     setText("anchor-note", ANCHOR_NOTE);
-    setText("report-note", REPORT_NOTE);
+    // The report note is per-report copy now — loadReport paints it (CAP-2).
 
     for (const [key, report] of Object.entries(REPORTS)) {
       const button = dom.querySelector(`button[data-report="${key}"]`);

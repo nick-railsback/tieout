@@ -3,7 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { createShell, type ShellDeps, type ShellDom, type ShellElement } from "../src/shell.ts";
-import type { AnchorState } from "../src/view.ts";
+import { HONESTY_BOUNDARY, REPORT_EXPLAINERS, type AnchorState } from "../src/view.ts";
+import { REPORTS } from "../src/config.ts";
 
 // Health-audit Testing finding (TEST-2): main.ts — the whole web shell, where
 // the async races and error rendering live — had zero tests, which is exactly
@@ -182,6 +183,58 @@ test("review #2: report assets fetch under a path-style IPFS gateway CID, not th
       `report asset "${url}" escaped the gateway CID dir → ${resolved} (finding #2)`,
     );
   }
+});
+
+test("CAP-2: mount paints the labels, honesty copy, and the default explainer", () => {
+  const dom = new FakeDom();
+  const shell = createShell(makeDeps(dom));
+  shell.mount();
+
+  assert.equal(dom.text("honesty-banner"), HONESTY_BOUNDARY);
+  // mount no longer paints a static note — the default load's synchronous entry
+  // paint owns it, so the slice explainer must be up before any fetch settles.
+  assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice);
+  for (const [key, report] of Object.entries(REPORTS)) {
+    const button = dom.querySelector(`button[data-report="${key}"]`);
+    assert.equal(button?.textContent, report.label, `${key} toggle label`);
+  }
+});
+
+test("CAP-2: the report note repaints per toggle and the last click wins", async () => {
+  const dom = new FakeDom();
+  // Gate golden's fetch so its continuation provably runs AFTER a newer slice
+  // click — a real supersession, not just synchronous call order.
+  let releaseGolden!: () => void;
+  const gate = new Promise<void>((resolve) => (releaseGolden = resolve));
+  const deps = makeDeps(dom);
+  const shell = createShell({
+    ...deps,
+    fetchFn: async (url: string): Promise<Response> => {
+      if (url.includes("golden")) await gate;
+      return deps.fetchFn(url);
+    },
+  });
+
+  // Each load paints its own explainer synchronously at entry — the note tracks
+  // the click, not the fetch (which for golden is still gated).
+  const first = shell.loadReport("golden");
+  assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.golden);
+
+  // A second click supersedes golden mid-flight. Its fetch fails (slice always
+  // fails in these deps), yet the note still shows the selected explainer.
+  const second = shell.loadReport("slice");
+  assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice, "last click must win");
+  await second;
+  assert.equal(dom.text("report-status"), "load failed");
+  assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice);
+
+  // Now let golden's fetch succeed late: the superseded continuation must not
+  // repaint anything — not the note, not the hash, not the failed badge.
+  releaseGolden();
+  await first;
+  assert.equal(dom.text("report-note"), REPORT_EXPLAINERS.slice, "late settle must not repaint");
+  assert.equal(dom.text("report-status"), "load failed", "superseded load must not win");
+  assert.equal(dom.text("report-hash"), "—", "superseded load must not paint its hash");
 });
 
 test("UX-2: an initial load failure clears the hard-coded 'connecting…' badge", async () => {

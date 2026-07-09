@@ -49,10 +49,11 @@ export const ANCHOR_CHAIN_ID = resolveAnchorChainId(import.meta.env?.VITE_ANCHOR
 export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
 
 /** The two committed reports the surface renders (real engine output). BOTH
- * carry the injected reward discrepancy by design (the explain-itself demo), so
- * their labels name that honestly rather than implying an "all-green" report —
- * the everyday always-green signal is the live position + the closing-shares
- * tie-out, not a hand-built reconciled report. Each ships its real `reportHash`
+ * carry the injected reward discrepancy by design (the explain-itself demo);
+ * the labels say what each report IS in plain language (CAP-2), and the
+ * per-report explainers (`REPORT_EXPLAINERS`, view.ts) own the honesty framing
+ * — the everyday always-green signal is the live position + the closing-balance
+ * check, not a hand-built reconciled report. Each ships its real `reportHash`
  * as data so the web never re-hashes (AD-13). */
 // Gateway-RELATIVE asset paths (no leading "/"): native fetch resolves each
 // against document.baseURI, so under a path-style IPFS gateway
@@ -61,12 +62,12 @@ export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
 // deployment vite.config.ts `base: "./"` targets (AC-6.9; code-review #2).
 export const REPORTS = {
   golden: {
-    label: "Golden — reward break",
+    label: "Golden — synthetic fixture",
     json: "./report.golden.json",
     hash: "./report.golden.hash.txt",
   },
   slice: {
-    label: "Slice — injected discrepancy",
+    label: "Slice — real mainnet window",
     json: "./report.slice.json",
     hash: "./report.slice.hash.txt",
   },

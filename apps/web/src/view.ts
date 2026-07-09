@@ -22,6 +22,7 @@ import {
   type Report,
   type ReportNarration,
 } from "@tieout/recon";
+import type { ReportKey } from "./config.ts";
 
 /**
  * The honesty boundary, verbatim on the surface (AD-16). A reproduced hash
@@ -35,11 +36,18 @@ export const HONESTY_BOUNDARY =
 export const ANCHOR_NOTE =
   "The onchain anchor proves only that this report hash existed at or before a block — a timestamp. It is not proof the books are correct, and the submitter is a recorded fact, not an author signature.";
 
-/** Clarifies that BOTH committed demos carry the injected reward discrepancy —
- * the everyday always-green signal is the live position + the closing-shares
- * tie-out, not a hand-built reconciled report (AC-5.2.b honesty). */
-export const REPORT_NOTE =
-  "Both committed reports are real engine output carrying the injected reward discrepancy (the explain-itself demo). The everyday always-green signal is the live position above and the closing-shares axis tie-out — never a hand-built “all clear”.";
+/** Per-report plain-language explainers, repainted as the visitor toggles
+ * (CAP-2). Each says what its report actually is, that the discrepancy is
+ * deliberate, and where the everyday always-green signal really lives — the
+ * live position + the closing-balance check, never a hand-built reconciled
+ * report (AC-5.2.b honesty). Both are real engine output; only the inputs
+ * differ. */
+export const REPORT_EXPLAINERS: Record<ReportKey, string> = {
+  golden:
+    "This report reconciles a fully synthetic, hand-authored fixture: its 150 wstETH position belongs to the vanity address 0xda7a…0000 and exists nowhere on mainnet. Its books deliberately under-record the staking reward by 0.5 stETH, so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.",
+  slice:
+    "This report reconciles a real mainnet wstETH wallet over a pinned window of finalized blocks — the chain side re-derived entirely from public data, the ledger side taken from the books. The ledger deliberately carries an injected reward discrepancy, so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.",
+};
 
 /** Render a signed USD bigint at its declared scale as `"$1.23"` / `"-$1.23"`. */
 function usd(value: bigint, usdDecimals: bigint): string {
