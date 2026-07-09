@@ -256,6 +256,43 @@ rest: first commit `0fcdbed` on 2026-07-02, mainnet-anchored v0.1.0 release `44f
 2026-07-07 — **first commit to mainnet-anchored release in five days**, all of it
 verifiable from the git history.
 
+## How it was built
+
+Tieout was built AI-natively: I directed coding agents against versioned specs rather
+than writing most of the code by hand. Each unit of work started as a written spec —
+intent, boundaries, an edge-case matrix, and the exact verification commands that had to
+pass — and agents executed against it in reviewed batches. What I owned outright was the
+architecture and the verification: the invariants in
+[`docs/ARCHITECTURE-SPINE.md`](docs/ARCHITECTURE-SPINE.md), the determinism gate that
+reproduces the report hash on two independent CI runners, and the adversarial code
+reviews and codebase health audits whose findings landed as their own remediation
+commits — you can see them cited by number in the git history.
+
+The part most AI-assisted projects skip is grounding. Training data can't stay current
+on fast-moving, version-pinned tooling: an agent that "knows" Foundry or viem from
+training is confidently wrong about the pinned versions this repo actually uses. So the
+agents worked with context packs built by
+[skill-engine](https://github.com/nick-railsback/skill-engine), my plugin for distilling
+a source at a pinned commit into a navigable, citation-backed skill. The five packs that
+carried this project are published in this repo:
+
+- [`foundry-context`](.claude/skills/foundry-context/) — forge/cast/anvil/chisel,
+  distilled from the Foundry source at a pinned upstream commit.
+- [`viem-context`](.claude/skills/viem-context/) — viem 2.54.1, the pinned TypeScript
+  Ethereum interface.
+- [`ponder-context`](.claude/skills/ponder-context/) — Ponder 0.16.6, the indexing
+  framework behind `packages/indexer`.
+- [`ethskills-context-pack`](.claude/skills/ethskills-context-pack/) — Austin
+  Griffith's [ethskills](https://github.com/austintgriffith/ethskills) knowledge base,
+  which carried the architecture planning.
+- [`defi-context`](.claude/skills/defi-context/) — the four public 2025–2026 DeFi
+  reports the opportunity-scouting session ran on.
+
+The tool packs cite their sources at exact upstream commits; the report pack cites page
+numbers against content-hashed PDFs. That discipline is deliberate: the method that
+built tieout is the method tieout sells — don't trust what an agent (or an institution)
+remembers; pin the source and verify against it.
+
 ---
 
 *Tieout is a portfolio project. It is not legal, financial, regulatory, or tax advice;

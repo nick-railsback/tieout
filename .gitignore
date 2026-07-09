@@ -31,3 +31,15 @@ npm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Claude Code state is private by default; only the five named context skills are public.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/ethskills-context-pack/
+!.claude/skills/foundry-context/
+!.claude/skills/ponder-context/
+!.claude/skills/viem-context/
+!.claude/skills/defi-context/
+.claude/skills/**/research/
+.claude/skills/**/.review/
