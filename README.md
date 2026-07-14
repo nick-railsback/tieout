@@ -1,57 +1,17 @@
 # Tieout
 
-> **Does the crypto position on the blockchain match what the accounting books say — and
-> can an outsider check that without trusting us?**
-> Tieout answers that question with cryptographic force.
+Tieout rebuilds a staked-ETH (wstETH) position from public Ethereum data, reconciles it
+line-by-line against an internal ledger, and emits a report plus its keccak256 hash.
+One command re-derives the same hash, byte for byte, from any mainnet archive RPC:
 
-## TL;DR
+```bash
+ETH_RPC_URL=<mainnet-archive-rpc> pnpm --filter @tieout/recon verify \
+  fixtures/slice/report.json fixtures/slice/ledger.json
+```
 
-- **What it is:** Tieout rebuilds a staked-ETH (wstETH) position purely from public
-  blockchain data, ties it out line-by-line against internal books, and emits a report
-  plus its keccak256 hash.
-- **What makes it different:** nobody has to take the report on trust — anyone can
-  reproduce it. One command, `tieout verify`, against a mainnet archive RPC re-derives
-  the exact same hash, byte for byte, on their own machine.
-- **Where it runs:** 🟢 **v0.1.0 — released.** Live at
-  **[tieout.eth.limo](https://tieout.eth.limo)**; the `AttestationRegistry` is deployed
-  and source-verified on Base mainnet with the demo report's hash anchored onchain.
-  (Not legal, financial, or tax advice.)
-- **How fast it shipped:** first commit to mainnet-anchored release in **five days** —
-  check the git history.
-
-## Measured results
-
-Nothing below asks to be believed — each item names where a skeptic checks it:
-
-- **Byte-identical hashes on two independent CI runners, on every push to main and
-  feature branches** — the NFR-0 determinism gate; the `determinism` job in
-  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) fails red if the runners
-  disagree.
-- **Demo report hash anchored on Base mainnet** (block 48287188) — read it back from the
-  chain in one `eth_call` ([recipe](packages/contracts/README.md)), or see the anchor
-  panel at [tieout.eth.limo](https://tieout.eth.limo).
-- **First commit → mainnet-anchored release in five days** — `git log`: `0fcdbed`
-  (2026-07-02) to `44f0a0a` (2026-07-07).
-- **53 health-audit findings remediated across two full audits** — the second audit's 36
-  fixes are directly in the public history: one conventional commit per finding-cluster,
-  subject citing its finding IDs (`git log --grep` for `REL-`, `SEC-`, `TEST-`), each
-  code fix carrying its regression test in the same commit.
-- **The failure contract is itself pinned by tests** — `verify` exits with a one-line
-  typed error, never a stack trace
-  ([`packages/recon/test/verify.test.ts`](packages/recon/test/verify.test.ts)).
-
----
-
-## The one-paragraph version
-
-Tieout rebuilds a staked-ETH position (wstETH) purely from public blockchain data,
-compares it line-by-line against an internal ledger file, and emits a report plus a short
-fingerprint of that report (a keccak256 hash). Anyone — an auditor, a regulator, a
-skeptic — can run one command, `tieout verify`, pointed at any public Ethereum data
-provider, and re-derive the exact same fingerprint on their own machine. If even one byte
-of the story were different, the fingerprint would not match. That fingerprint can also
-be anchored on a blockchain (Base), so there is tamper-proof evidence of *when* the
-reconciliation existed.
+The demo is live at [tieout.eth.limo](https://tieout.eth.limo), and the demo report's
+hash is anchored in the `AttestationRegistry` on Base mainnet — read it back with one
+`eth_call` ([recipe](packages/contracts/README.md)).
 
 ## Who it's for
 
@@ -141,8 +101,8 @@ pnpm -r test                          # Node suites: recon, addresses, indexer, 
 forge test --root packages/contracts  # Solidity suites (Foundry)
 ```
 
-**The headline act** — reproduce a reconciliation yourself, the auditor's path. Point
-`verify` at the committed demo fixture (a *real* mainnet wallet over a pinned 255-block
+Then reproduce a reconciliation yourself — the auditor's path. Point `verify` at the
+committed demo fixture (a *real* mainnet wallet over a pinned 255-block
 window, with a deliberately injected 1-gwei bookkeeping error so the discrepancy path is
 exercised). You need a mainnet **archive** RPC — a provider that can answer "what was the
 state at block X" for old blocks; most free tiers include this:
@@ -162,10 +122,11 @@ to cheat it:
   a clean one-line typed error (never a stack trace — that failure contract is itself
   pinned by tests).
 - Edit the ledger copy (say, bump `bookedReward`) → the hashes no longer reproduce.
-- Run it on a second machine — or note that CI already runs it on two independent
-  runners (optionally against two different RPC providers) on every push, and the hashes
-  must match. That property is called **NFR-0** throughout the docs; it is the project's
-  entire promise.
+- Run it on a second machine — or note that the `determinism` job in
+  [`.github/workflows/ci.yml`](.github/workflows/ci.yml) already runs it on two
+  independent runners (optionally against two different RPC providers) on every push,
+  and fails red if the hashes disagree. That property is called **NFR-0** throughout the
+  docs; it is the project's entire promise.
 
 ## How it works (for engineers)
 
@@ -289,7 +250,7 @@ carried this project are published in this repo:
 - [`ponder-context`](.claude/skills/ponder-context/) — Ponder 0.16.6, the indexing
   framework behind `packages/indexer`.
 - [`ethskills-context-pack`](.claude/skills/ethskills-context-pack/) — Austin
-  Griffith's [ethskills](https://github.com/austintgriffith/ethskills) knowledge base,
+  Griffith's [ethskills](https://github.com/austintgriffith/ethskills) knowledge base, reduced to a single `SKILL.md` and complimentary `references/` files, 
   which carried the architecture planning.
 - [`defi-context`](.claude/skills/defi-context/) — the four public 2025–2026 DeFi
   reports the opportunity-scouting session ran on.
