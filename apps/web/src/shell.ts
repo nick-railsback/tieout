@@ -18,8 +18,9 @@ import { startLivePositions, type LivePositionsHandle, type LiveStatus } from ".
 import {
   anchorViewModel,
   HONESTY_BOUNDARY,
+  ANCHOR_CONTRAST,
   ANCHOR_NOTE,
-  REPORT_NOTE,
+  REPORT_EXPLAINERS,
   livePositionViewModel,
   reportViewModel,
 } from "./view.ts";
@@ -188,6 +189,10 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
     el("report-axes").replaceChildren();
     setBadge("anchor-status", "—", "neutral");
     setText("anchor-detail", "—");
+    // The contrast line claims a live registry read; on a failed load no read is
+    // ever attempted, so the claim must not stand over a blanked panel (review
+    // 2026-07-09 #1). The next successful load's entry paint restores it.
+    setText("anchor-contrast", "");
   }
 
   /** Read + paint the Base anchor for a report hash (graceful when undeployed).
@@ -212,6 +217,15 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
   async function loadReport(key: ReportKey): Promise<void> {
     const myGeneration = ++generation;
     const report = REPORTS[key];
+
+    // Paint the selected report's explainer synchronously, before any await —
+    // the note always matches the last-clicked toggle, even while a fetch is
+    // still in flight or after it fails (CAP-2).
+    setText("report-note", REPORT_EXPLAINERS[key]);
+    // The anchor contrast line is design commentary keyed to the selection, not
+    // a read result — it paints in the same synchronous block and stays put even
+    // when the anchor read itself errors (CAP-6).
+    setText("anchor-contrast", ANCHOR_CONTRAST[key]);
 
     liveHandle?.stop();
     liveHandle = undefined;
@@ -283,7 +297,7 @@ export function createShell(deps: ShellDeps = defaultDeps()): Shell {
   function mount(): void {
     setText("honesty-banner", HONESTY_BOUNDARY);
     setText("anchor-note", ANCHOR_NOTE);
-    setText("report-note", REPORT_NOTE);
+    // The report note is per-report copy now — loadReport paints it (CAP-2).
 
     for (const [key, report] of Object.entries(REPORTS)) {
       const button = dom.querySelector(`button[data-report="${key}"]`);

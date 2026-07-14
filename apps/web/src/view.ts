@@ -22,6 +22,7 @@ import {
   type Report,
   type ReportNarration,
 } from "@tieout/recon";
+import type { ReportKey } from "./config.ts";
 
 /**
  * The honesty boundary, verbatim on the surface (AD-16). A reproduced hash
@@ -35,11 +36,35 @@ export const HONESTY_BOUNDARY =
 export const ANCHOR_NOTE =
   "The onchain anchor proves only that this report hash existed at or before a block — a timestamp. It is not proof the books are correct, and the submitter is a recorded fact, not an author signature.";
 
-/** Clarifies that BOTH committed demos carry the injected reward discrepancy —
- * the everyday always-green signal is the live position + the closing-shares
- * tie-out, not a hand-built reconciled report (AC-5.2.b honesty). */
-export const REPORT_NOTE =
-  "Both committed reports are real engine output carrying the injected reward discrepancy (the explain-itself demo). The everyday always-green signal is the live position above and the closing-shares axis tie-out — never a hand-built “all clear”.";
+/** Per-report plain-language explainers, repainted as the visitor toggles
+ * (CAP-2). Each says what its report actually is, that the discrepancy is
+ * deliberate, and where the everyday always-green signal really lives — the
+ * live position + the closing-balance check, never a hand-built reconciled
+ * report (AC-5.2.b honesty). Both are real engine output; only the inputs
+ * differ. */
+/** The honesty framing both explainers share (AC-5.2.b) — one constant so the
+ * two demos can never state divergent honesty claims (review 2026-07-09 #5),
+ * matching how `HONESTY_BOUNDARY` and `ANCHOR_NOTE` are single constants. */
+export const EXPLAINER_HONESTY_TAIL =
+  "so the reconciliation has a real break to narrate — a demo that always passed would prove nothing. The everyday always-green signal is the live position above and the closing-balance check (chain-derived shares matching the books) — never a hand-built “all clear”.";
+
+export const REPORT_EXPLAINERS: Record<ReportKey, string> = {
+  golden: `This report reconciles a fully synthetic, hand-authored fixture: its 150 wstETH position belongs to the vanity address 0xda7a…0000 and exists nowhere on mainnet. Its books deliberately under-record the staking reward by 0.5 stETH, ${EXPLAINER_HONESTY_TAIL}`,
+  slice: `This report reconciles a real mainnet wstETH wallet over a pinned window of finalized blocks — the chain side re-derived entirely from public data, the ledger side taken from the books. The ledger deliberately carries an injected reward discrepancy, ${EXPLAINER_HONESTY_TAIL}`,
+};
+
+/** Per-report anchor contrast lines, repainted with the toggle (CAP-6). One
+ * anchor panel serves two reports with opposite anchor states — without this
+ * line the golden report's honest “Not yet anchored” reads as product failure.
+ * The copy explains design intent only; the anchor itself still proves a
+ * timestamp, never correctness or identity (AD-14 — `ANCHOR_NOTE` carries that
+ * boundary). */
+export const ANCHOR_CONTRAST: Record<ReportKey, string> = {
+  golden:
+    "This report’s hash was deliberately never attested — a synthetic fixture has nothing worth anchoring. The two demo reports land in different anchor states on purpose: this panel reads real chain state instead of hardcoding a green badge.",
+  slice:
+    "The slice demo’s report hash was attested onchain at the v0.1.0 release. Whatever record this panel shows is read live from the registry — nothing here is baked into the page.",
+};
 
 /** Render a signed USD bigint at its declared scale as `"$1.23"` / `"-$1.23"`. */
 function usd(value: bigint, usdDecimals: bigint): string {

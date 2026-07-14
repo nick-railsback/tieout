@@ -32,12 +32,14 @@ export const WS_RECONNECT_DELAY_MS = 2_000;
  */
 export const LIVE_READ_FAILURE_LIMIT = 3;
 
-/** Chain the AttestationRegistry anchor is read on. Default Base mainnet (8453);
- * its registry is not deployed yet, so the anchor panel degrades gracefully to
- * "not yet anchored" until the maintainer sets `VITE_ANCHOR_CHAIN_ID` (e.g.
- * 84532 Base Sepolia, or 31337 for a local Anvil demo). A malformed value (a
- * typo like `base`, or an empty string) falls back to 8453 rather than silently
- * rendering "chain NaN"/"chain 0" as a legitimate state. */
+/** Chain the AttestationRegistry anchor is read on. Default Base mainnet (8453),
+ * where the registry is deployed and source-verified (deploy record fd25e2a) and
+ * the slice report hash is attested; `VITE_ANCHOR_CHAIN_ID` remains a demo knob
+ * for repointing at Base Sepolia (84532) or a local Anvil (31337); a chain with
+ * no registry entry still degrades gracefully to an honest "not deployed"
+ * render (AD-14). A malformed value (a typo like `base`, or an empty string)
+ * falls back to 8453 rather than silently rendering "chain NaN"/"chain 0" as a
+ * legitimate state. */
 const ANCHOR_CHAIN_ID_DEFAULT = 8453;
 function resolveAnchorChainId(raw: string | undefined): number {
   const parsed = Number(raw);
@@ -49,10 +51,11 @@ export const ANCHOR_CHAIN_ID = resolveAnchorChainId(import.meta.env?.VITE_ANCHOR
 export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
 
 /** The two committed reports the surface renders (real engine output). BOTH
- * carry the injected reward discrepancy by design (the explain-itself demo), so
- * their labels name that honestly rather than implying an "all-green" report —
- * the everyday always-green signal is the live position + the closing-shares
- * tie-out, not a hand-built reconciled report. Each ships its real `reportHash`
+ * carry the injected reward discrepancy by design (the explain-itself demo);
+ * the labels say what each report IS in plain language (CAP-2), and the
+ * per-report explainers (`REPORT_EXPLAINERS`, view.ts) own the honesty framing
+ * — the everyday always-green signal is the live position + the closing-balance
+ * check, not a hand-built reconciled report. Each ships its real `reportHash`
  * as data so the web never re-hashes (AD-13). */
 // Gateway-RELATIVE asset paths (no leading "/"): native fetch resolves each
 // against document.baseURI, so under a path-style IPFS gateway
@@ -61,12 +64,12 @@ export const ANCHOR_RPC_URL = import.meta.env?.VITE_ANCHOR_RPC_URL;
 // deployment vite.config.ts `base: "./"` targets (AC-6.9; code-review #2).
 export const REPORTS = {
   golden: {
-    label: "Golden — reward break",
+    label: "Golden — synthetic fixture",
     json: "./report.golden.json",
     hash: "./report.golden.hash.txt",
   },
   slice: {
-    label: "Slice — injected discrepancy",
+    label: "Slice — real mainnet window",
     json: "./report.slice.json",
     hash: "./report.slice.hash.txt",
   },

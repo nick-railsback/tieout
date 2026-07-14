@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
+import { formatUnits } from "viem";
 import { parseReportJson, type Report } from "@tieout/recon";
 import {
   anchorViewModel,
+  ANCHOR_CONTRAST,
   ANCHOR_NOTE,
+  EXPLAINER_HONESTY_TAIL,
   HONESTY_BOUNDARY,
-  REPORT_NOTE,
+  REPORT_EXPLAINERS,
   livePositionViewModel,
   reportViewModel,
 } from "../src/view.ts";
@@ -25,10 +28,87 @@ test("AC-5.2.b — the honesty boundary is present and does not overclaim", () =
   // AD-14: the anchor proves a timestamp, not correctness or author identity.
   assert.match(ANCHOR_NOTE, /timestamp/i);
   assert.match(ANCHOR_NOTE, /not an author signature/i);
-  // Review fix #3: the demo note is honest that both committed reports carry the
-  // injected discrepancy and points at the real always-green signal.
-  assert.match(REPORT_NOTE, /injected reward discrepancy/i);
-  assert.match(REPORT_NOTE, /closing-shares axis tie-out/i);
+});
+
+test("CAP-2 — the per-report explainers tell a stranger what each demo is", () => {
+  // Golden is a made-up fixture and says so: synthetic, with a deliberate
+  // reward break. (Its figures are pinned by the fixture-tether test below —
+  // no hand-synced literals here; review 2026-07-09 #6.)
+  assert.match(REPORT_EXPLAINERS.golden, /synthetic/i);
+  assert.match(REPORT_EXPLAINERS.golden, /deliberate/i);
+  assert.match(REPORT_EXPLAINERS.golden, /reward/i);
+  // Slice is a real mainnet wallet over a pinned finalized window, with a
+  // deliberately injected discrepancy.
+  assert.match(REPORT_EXPLAINERS.slice, /real .*mainnet/i);
+  assert.match(REPORT_EXPLAINERS.slice, /deliberate/i);
+  assert.match(REPORT_EXPLAINERS.slice, /reward/i);
+  // The copy's whole job is telling the two apart — assert the distinction, not
+  // just each report's own claim (a lax regex tweak must not pass on both).
+  assert.doesNotMatch(REPORT_EXPLAINERS.golden, /real mainnet/i);
+  assert.doesNotMatch(REPORT_EXPLAINERS.slice, /synthetic/i);
+  // Review fix #3's honesty framing survives in both — as ONE shared constant,
+  // so the two demos can never state divergent honesty claims (review
+  // 2026-07-09 #5).
+  assert.match(EXPLAINER_HONESTY_TAIL, /always-green signal/i);
+  assert.match(EXPLAINER_HONESTY_TAIL, /never a hand-built/i);
+  for (const explainer of [REPORT_EXPLAINERS.golden, REPORT_EXPLAINERS.slice]) {
+    assert.ok(explainer.endsWith(EXPLAINER_HONESTY_TAIL), "honesty tail diverged");
+  }
+});
+
+test("CAP-6 — the anchor contrast lines explain the golden/slice split without overclaiming", () => {
+  // Golden: the un-attested state is deliberate, and the panel reads real chain
+  // state — never framed as a failure.
+  assert.match(ANCHOR_CONTRAST.golden, /deliberate/i);
+  assert.match(ANCHOR_CONTRAST.golden, /real .*chain state/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /fail|broken|error/i);
+  // Slice: attested at release (a historical fact that can't go stale — the
+  // badge carries the CURRENT status; review 2026-07-09 #2); the record is
+  // read live, not baked in. No chain name in prose: the chain id is a build
+  // knob and the badge/detail already carry it.
+  assert.match(ANCHOR_CONTRAST.slice, /attested onchain at the v0\.1\.0 release/i);
+  assert.match(ANCHOR_CONTRAST.slice, /read live/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /\bBase\b/);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /\bBase\b/);
+  // Discrimination, both directions: only golden owns the never-attested
+  // framing, only slice claims an attestation.
+  assert.match(ANCHOR_CONTRAST.golden, /never attested/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /never attested/i);
+  assert.doesNotMatch(ANCHOR_CONTRAST.golden, /v0\.1\.0/);
+  assert.doesNotMatch(ANCHOR_CONTRAST.slice, /synthetic/i);
+  assert.notEqual(ANCHOR_CONTRAST.golden, ANCHOR_CONTRAST.slice);
+  // The lines describe design intent only — painted unconditionally, they must
+  // never quote a concrete badge state the panel might not be showing (the
+  // anchor read can error; the reset path blanks the badge to "—").
+  for (const line of [ANCHOR_CONTRAST.golden, ANCHOR_CONTRAST.slice]) {
+    assert.doesNotMatch(line, /not yet anchored|anchor read failed|above|beside/i);
+    // AD-14: neither line lets the anchor prove correctness or identity — that
+    // boundary stays with ANCHOR_NOTE (pinned in AC-5.2.b above).
+    assert.doesNotMatch(line, /correct|identity|books|author/i);
+  }
+});
+
+test("CAP-2 — the golden explainer's figures are tethered to the shipped fixture", () => {
+  // The prose hardcodes fixture facts; bind them to report.golden.json so a
+  // regenerated fixture can't leave the copy silently lying (review finding).
+  const golden = loadReport("report.golden.json") as {
+    subject: string;
+    axes: {
+      closingShares: { onchain: string };
+      reward: { onchain: string; ledger: string };
+    };
+  };
+  const shares = formatUnits(BigInt(golden.axes.closingShares.onchain), 18);
+  const rewardBreak = formatUnits(
+    BigInt(golden.axes.reward.onchain) - BigInt(golden.axes.reward.ledger),
+    18,
+  );
+  assert.ok(REPORT_EXPLAINERS.golden.includes(`${shares} wstETH`), "closing position drifted");
+  assert.ok(REPORT_EXPLAINERS.golden.includes(`${rewardBreak} stETH`), "reward break drifted");
+  assert.ok(
+    REPORT_EXPLAINERS.golden.includes(golden.subject.slice(0, 6)),
+    "vanity subject drifted",
+  );
 });
 
 test("AC-5.2.a — the slice report view names the breaking event and narrates the cause", () => {

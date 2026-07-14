@@ -25,8 +25,11 @@
         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
       }
       main { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
+      header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
       header h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
       header p { margin: 0; color: var(--muted); }
+      header a.repo { color: var(--accent); text-decoration: none; font-size: 13.5px; white-space: nowrap; }
+      header a.repo:hover, header a.repo:focus-visible { text-decoration: underline; }
       .banner {
         margin: 20px 0 24px; padding: 12px 14px; border-radius: 8px;
         border: 1px solid var(--line); background: rgba(88, 166, 255, 0.06);
@@ -61,15 +64,44 @@
       ul.narration { margin: 8px 0 0; padding-left: 18px; }
       ul.narration li { margin: 4px 0; }
       .note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+      .note a { color: var(--accent); text-decoration: none; }
+      .note a:hover, .note a:focus-visible { text-decoration: underline; }
+      pre.cmd {
+        margin: 10px 0 0; padding: 12px 14px; border-radius: 8px;
+        border: 1px solid var(--line); background: var(--bg);
+        font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+        overflow-x: auto;
+      }
       .headline { font-size: 15px; margin: 2px 0 10px; }
     </style>
   </head>
   <body>
     <main>
       <header>
-        <h1>tieout</h1>
-        <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
+        <div>
+          <h1>tieout</h1>
+          <p>Independently-verifiable reconciliation for an onchain wstETH position.</p>
+        </div>
+        <a
+          class="repo"
+          href="https://github.com/nick-railsback/tieout"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Source on GitHub (opens in a new tab)"
+          >Source on GitHub <span aria-hidden="true">↗</span></a
+        >
       </header>
+
+      <p class="headline" id="framing" style="margin: 20px 0 0">
+        tieout rebuilds an onchain wstETH position — a token representing staked
+        ETH — from public blockchain data alone, checks it against an accounting
+        ledger, and produces a report that anyone holding the same ledger file
+        can reproduce byte-for-byte. It’s built for compliance and audit people
+        who need verification that doesn’t rest on trusting the reporter. This
+        page demonstrates the pipeline end-to-end: a position read live from
+        mainnet, two demo reconciliations, and a tamper-evidence anchor read
+        live from Base.
+      </p>
 
       <p class="banner" id="honesty-banner" aria-live="polite"></p>
 
@@ -103,11 +135,62 @@
         <div class="row"><span class="k">Report hash</span><span class="mono" id="report-hash">—</span></div>
       </section>
 
+      <section id="verify" aria-labelledby="verify-h">
+        <h2 id="verify-h">Reproduce it yourself · the auditor’s path</h2>
+        <p class="headline">
+          Don’t take this page’s word for it. One command re-downloads the public chain
+          data, rebuilds the reconciliation, and must reproduce the slice report’s exact
+          hash — on your machine, without trusting this page or the report’s author.
+        </p>
+        <pre class="cmd" tabindex="0" role="region" aria-label="verify command"><code>git clone https://github.com/nick-railsback/tieout &amp;&amp; cd tieout
+pnpm install &amp;&amp; pnpm -r build
+ETH_RPC_URL=&lt;mainnet-archive-rpc-url&gt; \
+  pnpm --filter @tieout/recon verify \
+  fixtures/slice/report.json fixtures/slice/ledger.json</code></pre>
+        <p class="note">
+          Prereqs: Node 24 and pnpm (<span class="mono">corepack enable</span>). Needs a
+          mainnet <strong>archive</strong> RPC — a provider that can answer “what was the
+          state at block X” for old blocks; most free tiers include this. Exit code 0 means
+          byte-identical reproduction; any failure is a clean one-line typed error.
+          <a
+            href="https://github.com/nick-railsback/tieout#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Full walkthrough in the README (opens in a new tab)"
+            >Full walkthrough in the README<span aria-hidden="true"> ↗</span></a
+          >.
+        </p>
+      </section>
+
       <section id="anchor" aria-labelledby="anchor-h">
         <h2 id="anchor-h">Tamper-evidence anchor · Base <span class="badge neutral" id="anchor-status" aria-live="polite">—</span></h2>
         <div class="row"><span class="k">Chain</span><span class="mono" id="anchor-chain">—</span></div>
         <p id="anchor-detail" class="headline">—</p>
+        <p class="note" id="anchor-contrast"></p>
         <p class="note" id="anchor-note"></p>
+      </section>
+
+      <section id="next" aria-labelledby="next-h">
+        <h2 id="next-h">Where this goes next</h2>
+        <p class="headline">
+          The natural expansion directions are continuous monitoring, multiple
+          addresses, and more asset types. A second set is deliberately not
+          built — wallet connect, client-side report generation, in-browser
+          verify, downloadable reports, address lookup. Some are parked on plain
+          scope discipline; the rest would have tieout act on a visitor’s
+          behalf, making it a trusted intermediary — the exact role it exists to
+          eliminate.
+        </p>
+        <p class="note">
+          The long version lives in
+          <a
+            href="https://github.com/nick-railsback/tieout#roadmap"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="README roadmap (opens in a new tab)"
+            >the README roadmap<span aria-hidden="true"> ↗</span></a
+          >.
+        </p>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
