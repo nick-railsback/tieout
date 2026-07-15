@@ -29,12 +29,12 @@ vendor. Tieout's contribution is structural: **the evidence is reproducible by t
 verifier from public data, with open code, trusting no one.** Tieout is the tool the
 *accountant* runs.
 
-## What it actually does — the five pieces
+## What it does
 
-1. **The reconciliation engine** (`packages/recon`) — the heart. A pure function: give it
+1. **The reconciliation engine** (`packages/recon`) — a pure function. Give it
    a "manifest" (the relevant blockchain events over a pinned block window) and a ledger
    (your books), and it returns a report plus its hash. It contains zero network calls,
-   zero clock reads, zero floating-point math — that's what makes the output
+   zero clock reads, or zero floating-point math — making the output
    byte-identical on any machine. It reconciles two axes: **closing shares** (does the
    chain balance match the sum of your booked lots?) and **reward** (does the staking
    yield the chain says you earned match what you booked?).
@@ -43,15 +43,14 @@ verifier from public data, with open code, trusting no one.** Tieout is the tool
    command. It re-downloads the raw blockchain events itself from any archive RPC
    endpoint, rebuilds the manifest from scratch, re-runs the engine, and confirms the
    hash matches. It trusts nothing the adviser produced except the pinned block
-   numbers/hashes and the ledger file — both of which are inputs it checks, not facts it
-   assumes. It also checks a detached author signature (EIP-712) on a separate output
+   numbers/hashes and the ledger file, both of which are inputs it checks. It also checks a detached author signature (EIP-712) on a separate output
    line, so "the math reproduces" and "the author committed to it" are two independent
    statements.
 
-3. **The onchain anchor** (`packages/contracts` — `AttestationRegistry`) — a tiny
-   contract with one job: record "this report hash existed at this block/time." First
+3. **The onchain anchor** (`packages/contracts` — `AttestationRegistry`) — a small
+   contract with one job: recording that "this report hash existed at this block/time." The first
    write wins, anyone can call it, repeat calls are harmless no-ops. It deliberately
-   proves *only a timestamp* — never correctness, never identity.
+   proves *only a timestamp* — not correctness, not identity.
 
 4. **USD valuation** — the report values the position in dollars using a Chainlink price
    feed reading pinned to a specific round at the window's end block. Even the dollar
@@ -63,22 +62,19 @@ verifier from public data, with open code, trusting no one.** Tieout is the tool
 
 There is also a sixth piece, the **Ponder indexer** (`packages/indexer`), which is
 intentionally half-built: it records chain events into a database, but nothing reads them
-back yet. It is *not* part of the trust story — the verifier always fetches its own data
-— and it exists for the future "continuous monitoring" feature.
+back yet. It's *not* part of the trust story — the verifier always fetches its own data. It exists to accomodate a future "continuous monitoring" feature.
 
 ## What it deliberately does *not* claim
 
 A green `verify` means "the derivation from public chain data reproduced, and the author
 committed to it." It does **not** mean "the books are right." No tool can prove a private
-ledger is honest or complete — and every surface here (CLI output, web copy, this README)
-states that explicitly.
+ledger is honest or complete.
 
 When books and chain *do* disagree, Tieout doesn't just say "mismatch": it names the
 exact onchain event that broke the tie-out (transaction hash, block, log index) and
-narrates the likely cause in plain English — generated mechanically from engine output,
-never hand-written, so it can't lie.
+narrates the likely cause in plain English, generated mechanically from engine output.
 
-## Try it — and try to cheat it
+## Try it
 
 **Prerequisites** (all version-pinned for byte-reproducible output):
 
@@ -101,10 +97,10 @@ pnpm -r test                          # Node suites: recon, addresses, indexer, 
 forge test --root packages/contracts  # Solidity suites (Foundry)
 ```
 
-Then reproduce a reconciliation yourself — the auditor's path. Point `verify` at the
+Then reproduce a reconciliation yourself. Point `verify` at the
 committed demo fixture (a *real* mainnet wallet over a pinned 255-block
 window, with a deliberately injected 1-gwei bookkeeping error so the discrepancy path is
-exercised). You need a mainnet **archive** RPC — a provider that can answer "what was the
+exercised). You need a mainnet **archive** RPC, a provider that can answer "what was the
 state at block X" for old blocks; most free tiers include this:
 
 ```bash
@@ -122,13 +118,12 @@ to cheat it:
   a clean one-line typed error (never a stack trace — that failure contract is itself
   pinned by tests).
 - Edit the ledger copy (say, bump `bookedReward`) → the hashes no longer reproduce.
-- Run it on a second machine — or note that the `determinism` job in
+- Run it on a second machine, or note that the `determinism` job in
   [`.github/workflows/ci.yml`](.github/workflows/ci.yml) already runs it on two
   independent runners (optionally against two different RPC providers) on every push,
-  and fails red if the hashes disagree. That property is called **NFR-0** throughout the
-  docs; it is the project's entire promise.
+  and red if the hashes disagree.
 
-## How it works (for engineers)
+## How it works
 
 ```
         public chain data (any archive RPC)         ledger export (the books)
@@ -155,14 +150,14 @@ to cheat it:
 **Design rules that make verification real** (the full set lives in
 [`docs/ARCHITECTURE-SPINE.md`](docs/ARCHITECTURE-SPINE.md), AD-1..AD-20):
 
-- Pin **both** window endpoints to **finalized** `(blockNumber, blockHash)` pairs — never
+- Pin **both** window endpoints to **finalized** `(blockNumber, blockHash)` pairs. Never
   read `latest` in a canonical run (reorg-safe).
 - **Integer math only** (wei/shares as `bigint`, rates as 1e18 fixed-point,
-  multiply-before-divide with exactly one division) — no float ever touches the hash.
+  multiply-before-divide with exactly one division). No float ever touches the hash.
 - The engine core is a **pure function**: `(manifest, ledger) → (report, reportHash)`.
   Same inputs → same hash, on any machine.
 - Canonical bytes are **RFC 8785 (JCS)** from a single canonicalizer module, hashed with
-  Ethereum **keccak256** — so "the same data" always means the same bytes.
+  Ethereum **keccak256**, so "the same data" always means the same bytes.
 - Token and feed addresses come from a **verified, `cast`-checked table** — never
   hardcoded from memory.
 
@@ -170,70 +165,32 @@ to cheat it:
 
 | Path | What it holds |
 |---|---|
-| `packages/recon` | The pure reconciliation engine, canonicalizer, narration, and the `verify` / `pin-slice` CLIs. *(The heart.)* |
-| `packages/contracts` | `AttestationRegistry` (the anchor) + `MockStakedVault` (ERC-4626 test double — never deployed to hold value). Foundry. |
+| `packages/recon` | The pure reconciliation engine, canonicalizer, narration, and the `verify` / `pin-slice` CLIs. |
+| `packages/contracts` | `AttestationRegistry` + `MockStakedVault` (ERC-4626 test double, never deployed to hold value). Foundry. |
 | `packages/indexer` | Ponder event accumulator (write-only today; not on the trust path). |
 | `apps/web` | The static demo surface: live position, explain-itself diff, anchor status. |
 | `addresses/` | The single source of every chain address, checksum-guarded at build time. |
 | `docs/` | The architecture spine (`ARCHITECTURE-SPINE.md`) + an interactive deck (`architecture-deck.html`). |
 
-## Roadmap
-
-- **v0.1.0 (this release):** one real wstETH position, a pinned finalized window, a
-  signed `report.json` + hash that `tieout verify` reproduces from public data on two
-  independent CI runners; the `AttestationRegistry` deployed and source-verified on Base
-  with the demo report's hash anchored; the demo site pinned to IPFS behind the
-  `tieout.eth` ENS name — content-addressed hosting for a hash-addressed report.
-- **Then:** the indexer read-back and the continuous "CI for compliance" runner,
-  multi-address aggregation, more asset types (tokenized treasuries, stablecoins).
-- **Deliberately not built:** wallet connect, client-side report generation, in-browser
-  verify, downloadable reports, address lookup. Some are parked on plain scope
-  discipline (a solo maintainer, a tax-adjacent domain); the rest would have tieout act
-  on a visitor's behalf — a *trusted intermediary*, the exact role the product exists to
-  eliminate. The demand signals behind them are recorded, and they'll be revisited
-  deliberately, not by accretion.
-- **Vision (not built):** a **zero-knowledge proof of correct reconciliation** —
-  verifiable by anyone, revealing nothing — and an **open attestation standard** auditors
-  could coalesce around. The report is already Merkle-shaped so ZK can be added without
-  reshaping anything. The endgame is making an institution's first onchain audit
-  *boring*.
-
 ## Where this came from
 
-Two threads ran in parallel before any of this existed: studying for the Series 65 exam
-(the investment-adviser side of traditional finance) and roughly six years of standing
-interest in the Ethereum ecosystem. I distilled both into context packs with my own
-tooling — a private pack from my exam study materials, and a DeFi pack built from four
-public 2025–2026 reports (the State of DeFi 2025 and a16z's State of Crypto 2025 among
-them).
+I've been interested in the Ethereum ecosystem since ~2020. Recently I've been reading resources in preparation for the Series 65 exam (the investment-adviser side of traditional finance). I distilled both into context packs with my own tooling: a pack from my exam study materials, and a DeFi pack built from four public 2025–2026 reports (the State of DeFi 2025 and a16z's State of Crypto 2025 among them).
 
-With both packs loaded, I ran a deliberate opportunity-scouting session: where
-traditional finance meets DeFi, which capabilities that TradFi takes for granted —
-custody, clearing, adviser compliance — still have no good onchain equivalent, and
-which of those gaps could one person realistically start building against? The session
-produced a ranked shortlist; near its top sat custody-rule surprise verification backed
-by independently reproducible onchain evidence. That entry became tieout, and the concept
-was pressure-tested in a structured design-thinking + adversarial-roundtable session
-before any code was written.
+With both packs loaded, I ran a deliberate opportunity-scouting session: where traditional finance meets DeFi, which capabilities that TradFi takes for granted — custody, clearing, adviser compliance — still have no good onchain equivalent, and which of those gaps could one person realistically start building against? 
+
+Near the top of the session's ranked shortlist was custody-rule surprise verification backed by independently reproducible onchain evidence. That entry became tieout.
 
 Building on Ethereum needed one more grounding layer: Austin Griffith's public
 [ethskills](https://github.com/austintgriffith/ethskills) knowledge base, reduced to a
-context pack, carried the architecture planning. From there the public record tells the
-rest: first commit `0fcdbed` on 2026-07-02, mainnet-anchored v0.1.0 release `44f0a0a` on
-2026-07-07 — **first commit to mainnet-anchored release in five days**, all of it
-verifiable from the git history.
+context pack, carried the architecture planning.
 
 ## How it was built
 
-Tieout was built AI-natively: I directed coding agents against versioned specs rather
+Tieout was built AI-natively. I directed coding agents against versioned specs rather
 than writing most of the code by hand. Each unit of work started as a written spec —
 intent, boundaries, an edge-case matrix, and the exact verification commands that had to
-pass — and agents executed against it in reviewed batches. What I owned outright was the
-architecture and the verification: the invariants in
-[`docs/ARCHITECTURE-SPINE.md`](docs/ARCHITECTURE-SPINE.md), the determinism gate that
-reproduces the report hash on two independent CI runners, and the adversarial code
-reviews and codebase health audits whose findings landed as their own remediation
-commits — you can see them cited by number in the git history.
+pass, which agents executed against.
+
 
 The part most AI-assisted projects skip is grounding. Training data can't stay current
 on fast-moving, version-pinned tooling: an agent that "knows" Foundry or viem from
@@ -256,9 +213,28 @@ carried this project are published in this repo:
   reports the opportunity-scouting session ran on.
 
 The tool packs cite their sources at exact upstream commits; the report pack cites page
-numbers against content-hashed PDFs. That discipline is deliberate: the method that
-built tieout is the method tieout sells — don't trust what an agent (or an institution)
-remembers; pin the source and verify against it.
+numbers against content-hashed PDFs.
+
+## Roadmap
+
+- **v0.1.0 (this release):** one real wstETH position, a pinned finalized window, a
+  signed `report.json` + hash that `tieout verify` reproduces from public data on two
+  independent CI runners; the `AttestationRegistry` deployed and source-verified on Base
+  with the demo report's hash anchored; the demo site pinned to IPFS behind the
+  `tieout.eth` ENS name — content-addressed hosting for a hash-addressed report.
+- **Then:** the indexer read-back and the continuous "CI for compliance" runner,
+  multi-address aggregation, more asset types (tokenized treasuries, stablecoins).
+- **Deliberately not built:** wallet connect, client-side report generation, in-browser
+  verify, downloadable reports, address lookup. Some are parked on plain scope
+  discipline (a solo maintainer, a tax-adjacent domain); the rest would have tieout act
+  on a visitor's behalf — a *trusted intermediary*, the exact role the product exists to
+  eliminate. The demand signals behind them are recorded, and they'll be revisited
+  deliberately, not by accretion.
+- **Vision (not built):** a **zero-knowledge proof of correct reconciliation** —
+  verifiable by anyone, revealing nothing — and an **open attestation standard** auditors
+  could coalesce around. The report is already Merkle-shaped so ZK can be added without
+  reshaping anything. The endgame is making an institution's first onchain audit
+  *boring*.
 
 ---
 
